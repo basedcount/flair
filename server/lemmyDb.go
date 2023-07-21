@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -44,14 +45,16 @@ func findDatabaseConfig() (string, error) {
 	config, err := os.ReadFile(defaultConfig)
 	if err != nil {
 		log.Error(err)
+		return "", ErrNoDatabaseConf
 	}
 
 	dbConf := &SqlConf{}
 	if err := json.Unmarshal(config, dbConf); err != nil {
-		return "", err
+		return "", errors.Join(err, ErrNoDatabaseConf)
+
 	}
 
-	return dbConf.String(), ErrNoDatabaseConf
+	return dbConf.String(), nil
 }
 
 func getLemmyDbEnv() (string, error) {
@@ -63,4 +66,3 @@ func getLemmyDbEnv() (string, error) {
 	log.Info("Databse Config", "not found", "LEMMY_DATABASE_URL")
 	return "", ErrNoDatabaseConf
 }
-
