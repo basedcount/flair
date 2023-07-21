@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/grovesbs/flairs/server"
 )
 
 func main() {
@@ -19,5 +20,7 @@ func main() {
 		os.Exit(64)
 	}
 
+	server.Serve(port)
 	
 }
+
