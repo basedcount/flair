@@ -2,12 +2,25 @@ package server
 
 import (
 	"database/sql"
+	"fmt"
+	"os"
 
 	"github.com/charmbracelet/log"
 	// "github.com/gofiber/fiber/v2"
 )
 
+const VERSION = "v0.0.1 (1)"
+
 func Serve(port string) {
+	args := os.Args[1:]
+	if len(args) > 0 {
+		switch args[0] {
+		case "--version", "-v", "version":
+			fmt.Println(VERSION)
+			os.Exit(0)
+		}
+	}
+
 	connStr, err := findDatabaseConfig()
 	if err != nil {
 		log.Fatal(err)
