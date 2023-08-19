@@ -2,14 +2,21 @@ package server
 
 import (
 	"database/sql"
+	_ "embed"
+	"errors"
 	"fmt"
+	// "net/url"
 	"os"
 
 	"github.com/charmbracelet/log"
-	// "github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2"
+	_ "github.com/lib/pq"
 )
 
-const VERSION = "v0.0.1 (3)"
+const VERSION = "flairs v0.0.4"
+
+//go:embed sql/flair.sql
+var flairSQL string
 
 func Serve(port string) {
 	args := os.Args[1:]
@@ -29,24 +36,47 @@ func Serve(port string) {
 			log.Fatal(err)
 		}
 	}
-
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		log.Fatal("Unable to authenticate to Lemmy's database. Make sure to check your credientials.")
+		log.Fatalf("Unable to authenticate to Lemmy's database: %q. Make sure to check your credientials", err)
 	}
 	log.Info("Authenticated with Lemmy's database.")
 	defer db.Close()
 
 	err = db.Ping()
 	if err != nil {
-		log.Fatal("Unable to connect with Lemmy's database.")
+		log.Fatalf("Unable to connect with Lemmy's database. %q", err)
 	}
 
-	// app := fiber.New()
+	if _, err := db.Exec(flairSQL); err != nil {
+		log.Fatalf("Error: %q", errors.Join(ErrSetupDatabase, err))
+	}
+	log.Info("Updated database schema")
+	log.Info("Starting Flairs server")
 
-	// app.Get("/user", func(c *fiber.Ctx) error {
-	// 	return c.SendString("Hello, World!")
-	// })
+	// Actual server
+	srv := NewServer(db)
+	log.Fatal(srv.Start(port))
 
-	// log.Fatal(app.Listen(port))
+}
+
+type Server struct {
+	db *sql.DB
+}
+
+func NewServer(db *sql.DB) Server {
+	return Server{db}
+}
+
+func (s *Server) Start(port string) error {
+	app := fiber.New()
+
+	app.Get("/api/user", func(c *fiber.Ctx) error {
+		// name := url.QueryEscape(c.Query("name"))
+		//TODO setup URL params for fetching user flairs
+		//TODO add existing flairs to DB tables
+		return nil
+	})
+
+	return app.Listen(port)
 }
