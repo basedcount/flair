@@ -1,11 +1,14 @@
 package server
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hjson/hjson-go/v4"
 	"os"
 	"path/filepath"
+	"reflect"
+
+	"github.com/hjson/hjson-go/v4"
 
 	"github.com/charmbracelet/log"
 )
@@ -35,16 +38,15 @@ func findDatabaseConfig() (string, error) {
 	if err != nil {
 		log.Warn("Cannot access current directory. Looking for $LEMMY_DATABASE_URL")
 		return getLemmyDbEnv()
-
 	}
 
-	var defaultConfig = filepath.Join(cwd, "config", "config.hjson")
+	var configPath = filepath.Join(cwd, "config", "config.hjson")
 	configLocation := os.Getenv("LEMMY_CONFIG_LOCATION")
 	if len(configLocation) > 0 {
-		defaultConfig = configLocation
+		configPath = configLocation
 	}
 
-	config, err := os.ReadFile(defaultConfig)
+	config, err := os.ReadFile(configPath)
 	if err != nil {
 		log.Error(err)
 		log.Info(
@@ -54,11 +56,25 @@ func findDatabaseConfig() (string, error) {
 		return "", ErrNoDatabaseConf
 	}
 
-	dbConf := &SqlConf{}
-	if err := hjson.Unmarshal(config, dbConf); err != nil {
-		log.Warn("Failed to parse config.hjson")
-		return "", errors.Join(err, ErrNoDatabaseConf)
+	dbConf := SqlConf{}
+	configFileName := filepath.Base(configPath)
 
+	switch filepath.Ext(configPath) {
+	case "hjson":
+		if err := hjson.Unmarshal(config, &dbConf); err != nil {
+			log.Warnf("Failed to parse %s", configFileName)
+			return "", errors.Join(err, ErrNoDatabaseConf)
+
+		}
+	case "json":
+		if err := json.Unmarshal(config, &dbConf); err != nil {
+			log.Warnf("Failed to parse %s", configFileName)
+			return "", errors.Join(err, ErrNoDatabaseConf)
+		}
+	}
+
+	if err = checkForCredentials(dbConf); err != nil {
+		return "", err
 	}
 
 	// log.Print(dbConf.String())
@@ -73,4 +89,25 @@ func getLemmyDbEnv() (string, error) {
 
 	log.Info("Databse Config", "not found", "LEMMY_DATABASE_URL")
 	return "", ErrNoDatabaseConf
+}
+
+func checkForCredentials(config SqlConf) error {
+	value := reflect.ValueOf(config)
+	valType := value.Type()
+
+	var errorList []error
+
+	for i := 0; i < value.NumField(); i++ {
+		fieldValue := value.Field(i)
+		fieldType := valType.Field(i)
+
+		if fieldType.Name == "Host" || fieldType.Name == "Port" || fieldType.Name == "Database" || fieldType.Name == "User" {
+			if fieldValue.IsZero() {
+				errorList = append(errorList, fmt.Errorf("%q: %s", ErrMissingCredentials, fieldType.Name))
+			}
+		}
+
+	}
+
+	return errors.Join(errorList...)
 }

@@ -9,7 +9,7 @@ import (
 	// "github.com/gofiber/fiber/v2"
 )
 
-const VERSION = "v0.0.1 (1)"
+const VERSION = "v0.0.1 (3)"
 
 func Serve(port string) {
 	args := os.Args[1:]
@@ -21,15 +21,18 @@ func Serve(port string) {
 		}
 	}
 
-	connStr, err := findDatabaseConfig()
-	if err != nil {
-		log.Fatal(err)
+	var connStr = os.Getenv("LEMMY_DATABASE_URL")
+	if len(connStr) == 0 {
+		var err error
+		connStr, err = findDatabaseConfig()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		log.Fatal("Unable to authenticate to Lemmy's database. Make sure to check your credientials.")
-
 	}
 	log.Info("Authenticated with Lemmy's database.")
 	defer db.Close()

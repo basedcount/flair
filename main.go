@@ -13,6 +13,7 @@ func main() {
 	if len(port) == 0 {
 		port = ":6969"
 	}
+
 	port = strings.TrimPrefix(port, ":") // removes ':'
 	port = fmt.Sprintf(":%s", port) // adds it back for formatting ':'
 	if port[0] != ':' {
