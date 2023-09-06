@@ -3,6 +3,7 @@ use clap::{Parser, Subcommand};
 use deadpool_sqlite::Pool;
 
 /// Flairs augments the Lemmy Fediverse software by adding user flairs like Reddit.
+/// Set RUST_LOG = debug to see log messages.
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub(crate) struct Args {
@@ -15,6 +16,7 @@ pub(crate) enum Commands {
     Serve,
 }
 
+/// init_db initalizes the required database structure for Flairs to operate.
 pub(crate) async fn init_db(pool: &Pool) -> anyhow::Result<()> {
     let conn = pool.get().await?;
     if let Err(e) = conn
