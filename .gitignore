@@ -1,3 +1,9 @@
 build.sh
 flairs
 .env
+*.db
+
+
+# Added by cargo
+
+/target
