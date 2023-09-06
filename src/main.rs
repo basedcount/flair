@@ -38,8 +38,8 @@ async fn main() -> anyhow::Result<()> {
             init_db(&pool).await?;
 
             let app = Router::new()
-                .route("/user", get(router::get_user_flair))
-                .route("/user", post(router::add_user))
+                .route("/api/v1/user", get(router::get_user_flair))
+                .route("/api/v1/user", post(router::add_user))
                 .with_state(pool);
 
             let addr = SocketAddr::from(([127, 0, 0, 1], port));

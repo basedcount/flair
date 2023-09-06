@@ -8,7 +8,7 @@ An augmentation for [Lemmy](https://join-lemmy.org) that adds user flair support
 #### Get a user's flairs
 
 ```http
-  GET /user
+  GET /api/v1/user
 ```
 
 | Parameter | Type     | Description                |
@@ -18,7 +18,7 @@ An augmentation for [Lemmy](https://join-lemmy.org) that adds user flair support
 #### Add a user to database
 
 ```http
-  POST /user
+  POST /api/v1/user
 ```
 
 **Body**
