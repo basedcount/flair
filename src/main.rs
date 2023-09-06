@@ -10,6 +10,8 @@ use std::net::SocketAddr;
 
 use crate::cli::{init_db, Commands};
 
+use ansi_term::Color;
+
 mod cli;
 mod router;
 
@@ -47,7 +49,7 @@ async fn main() -> anyhow::Result<()> {
                 .await
                 .unwrap();
         }
-        None => std::process::exit(0),
+        None => eprintln!("Run {} to see what commands are available!", Color::Green.paint("flairs --help")),
     }
 
     Ok(())
