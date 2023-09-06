@@ -6,7 +6,7 @@ use axum::{
     Json,
 };
 use deadpool_sqlite::{rusqlite::params, Pool};
-use flairs::FlairDirectory;
+use flair::FlairDirectory;
 
 use crate::internal_error;
 
