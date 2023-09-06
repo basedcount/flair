@@ -1,2 +1,2 @@
-# Flairs
+# Flair
 
