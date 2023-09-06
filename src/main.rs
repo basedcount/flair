@@ -22,9 +22,10 @@ async fn main() -> anyhow::Result<()> {
     let args = cli::Args::parse();
     match &args.command {
         Some(Commands::Serve) => {
-            let flairs_port = env::var("FLAIRS_PORT").unwrap_or(String::from("6969"));
+            let mut flairs_port = env::var("FLAIRS_PORT").unwrap_or(String::from("6969"));
             if flairs_port.starts_with(":") {
                 eprintln!("Please remove the ':' on your FLAIRS_PORT environment variable");
+                flairs_port = flairs_port.trim_start_matches(":").to_string();
             }
 
             let port: u16 = flairs_port.parse().unwrap_or(6969);

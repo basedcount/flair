@@ -13,35 +13,49 @@ use crate::internal_error;
 pub(crate) async fn get_user_flair(
     Query(params): Query<HashMap<String, String>>,
     State(pool): State<Pool>,
-) -> (StatusCode, String) {
+) -> Result<Json<Vec<FlairDirectory>>, (StatusCode, String)> {
     let id = match params.get("id") {
         Some(i) => i,
         None => {
-            return (
+            return Err((
                 StatusCode::BAD_REQUEST,
                 String::from("You need to set the 'id' url query"),
-            )
+            ))
         }
     };
 
     let conn = match pool.get().await.map_err(crate::internal_error) {
         Ok(a) => a,
-        Err(e) => return e,
+        Err(e) => return Err(e),
     };
 
     let submit_params = id.clone();
-    let _result = conn
+    match conn
         .interact(move |conn| {
             let mut stmt = conn
-                .prepare("SELECT * FROM flairs where user = ?1")
+                .prepare("SELECT ID, special, ref_id, pos, flair, path FROM flairs where ID = ?")
                 .unwrap();
             let mut rows = stmt.query([submit_params]).unwrap();
-            while let Some(_row) = rows.next().unwrap() {}
-        })
-        .await
-        .unwrap();
+            let mut users: Vec<FlairDirectory> = vec![];
+            while let Some(row) = rows.next().unwrap() {
+                users.push(FlairDirectory::new(
+                    row.get(0).unwrap_or(None),
+                    row.get(1).unwrap(),
+                    row.get(2).unwrap(),
+                    row.get(3).unwrap(),
+                    row.get(4).unwrap(),
+                    row.get(5).unwrap_or(None),
+                ))
+            }
 
-    (StatusCode::OK, format!("You asked for me? {id}"))
+            return users;
+        })
+        .await.map_err(internal_error)
+    {
+        Err(e) => return Err(e),
+        Ok(o) => return Ok(Json(o)),
+    }
+
 }
 
 pub(crate) async fn add_user(
