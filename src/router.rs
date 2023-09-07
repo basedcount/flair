@@ -29,13 +29,13 @@ pub(crate) async fn get_user_flair(
         Err(e) => return Err(e),
     };
 
-    let submit_params = id.clone();
+    let clone_id = id.clone();
     match conn
         .interact(move |conn| {
             let mut stmt = conn
                 .prepare("SELECT ID, special, ref_id, pos, flair, path FROM flairs where ID = ?")
                 .unwrap();
-            let mut rows = stmt.query([submit_params]).unwrap();
+            let mut rows = stmt.query([clone_id]).unwrap();
             let mut users: Vec<FlairDirectory> = vec![];
             while let Some(row) = rows.next().unwrap() {
                 users.push(FlairDirectory::new(
@@ -50,12 +50,12 @@ pub(crate) async fn get_user_flair(
 
             return users;
         })
-        .await.map_err(internal_error)
+        .await
+        .map_err(internal_error)
     {
         Err(e) => return Err(e),
         Ok(o) => return Ok(Json(o)),
     }
-
 }
 
 pub(crate) async fn add_user(
