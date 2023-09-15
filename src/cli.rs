@@ -5,7 +5,7 @@ use deadpool_sqlite::Pool;
 /// Flairs augments the Lemmy Fediverse software by adding user flairs like Reddit.
 /// Set RUST_LOG = debug to see log messages.
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
+#[command(author, version, about, long_about = None, arg_required_else_help = true)]
 pub(crate) struct Args {
     #[command(subcommand)]
     pub(crate) command: Option<Commands>,
@@ -13,6 +13,7 @@ pub(crate) struct Args {
 
 #[derive(Subcommand, Debug)]
 pub(crate) enum Commands {
+    /// Start the flair's webserver
     Serve,
 }
 
@@ -21,32 +22,39 @@ pub(crate) async fn init_db(pool: &Pool) -> anyhow::Result<()> {
     let conn = pool.get().await?;
     if let Err(e) = conn
         .interact(|conn| {
-            let mut flr_dir_stmt = conn
+           
+            let mut flr_stmt = conn
                 .prepare(
                     r"
-        CREATE TABLE IF NOT EXISTS flair_directory (
-            ID serial PRIMARY KEY,
-            special BOOL NOT NULL,
-            ref_id VARCHAR(255),
-            pos INT,
-            flair VARCHAR(255) NOT NULL,
-            path VARCHAR(255)
-        );
-        ",
+            CREATE TABLE IF NOT EXISTS flairs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                display_name TEXT NOT NULL,
+                path TEXT,
+                assigned_on TEXT NOT NULL, -- Representing DateTime<Utc> as TEXT in SQLite ISO format
+                community_actor_id TEXT NOT NULL,
+                mod_only BOOLEAN NOT NULL
+            );",
                 )
                 .unwrap();
-            flr_dir_stmt.execute([]).unwrap();
+            flr_stmt.execute([]).unwrap();
 
-            let mut flr_stmt = conn.prepare(r"
-            CREATE TABLE IF NOT EXISTS flairs (
-                ID serial PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                assigned_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                flair INT REFERENCES flair_directory(ID)
-            );").unwrap();
-            flr_stmt.execute([]).unwrap()
+            let mut user_flr_stmt = conn
+            .prepare(
+            r"
+                CREATE TABLE IF NOT EXISTS user_flairs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_actor_id INTEGER NOT NULL,
+                    flair_id INTEGER NOT NULL,
+                    assigned_on TEXT NOT NULL,
+                    FOREIGN KEY (flair_id) REFERENCES flairs(id)
+                );",
+            ).unwrap();
+            user_flr_stmt.execute([]).unwrap();
         })
         .await
+
+        
     {
         return Err(anyhow!("unable to initalize required table {:?}", e));
     }

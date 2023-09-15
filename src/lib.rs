@@ -1,24 +1,42 @@
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
+use chrono::{DateTime, Utc}; 
 
 /// Flairs represents flairs your users can utilize
 #[derive(Debug, Serialize, Deserialize, Clone, TS)]
 #[ts(export)]
 pub struct Flair {
-    pub id: usize,
+    pub id: Option<usize>,
+    /// Flair internal name (used for config purposes, eg: mod view)
     pub name: String,
+    /// Flair displayed name (visible on the website)
+    pub display_name: String,
+    /// Flair image path/url if present
+    pub path: Option<String>,
     pub assigned_on: DateTime<Utc>,
-    pub flair: usize,
+    /// Community where the flair exists
+    pub community_actor_id: String,
+    pub mod_only: bool,
 }
 
 impl Flair {
-    pub fn new(id: usize, name: String, assigned_on: DateTime<Utc>, flair: usize) -> Self {
+    pub fn new(
+        id: Option<usize>,
+        name: String,
+        display_name: String,
+        path: Option<String>,
+        assigned_on: DateTime<Utc>,
+        community_actor_id: String,
+        mod_only: bool,
+    ) -> Self {
         Self {
             id,
             name,
+            display_name,
+            path,
             assigned_on,
-            flair,
+            community_actor_id,
+            mod_only,
         }
     }
 }
@@ -27,31 +45,13 @@ impl Flair {
 /// Flairs with your Lemmy's Postgres database or Sqlite, which is why the name's so ambiguous.
 #[derive(Debug, Serialize, Deserialize, Clone, TS)]
 #[ts(export)]
-pub struct FlairDirectory {
+pub struct UserFlair {
     pub id: Option<usize>,
-    pub special: bool,
-    pub ref_id: String,
-    pub pos: usize,
-    pub flair: usize,
-    pub path: Option<String>,
+    pub user_actor_id: usize,
+    pub flair_id: usize,
+    pub assigned_on: DateTime<Utc>,  // This represents a non-timezone-aware datetime
 }
 
-impl FlairDirectory {
-    pub fn new(
-        id: Option<usize>,
-        special: bool,
-        ref_id: String,
-        pos: usize,
-        flair: usize,
-        path: Option<String>,
-    ) -> Self {
-        Self {
-            id,
-            special,
-            ref_id,
-            pos,
-            flair,
-            path,
-        }
-    }
+impl UserFlair {
+    pub fn new(id: Option<usize>, user_actor_id: usize, flair_id: usize, assigned_on: DateTime<Utc>) -> Self { Self { id, user_actor_id, flair_id, assigned_on } }
 }

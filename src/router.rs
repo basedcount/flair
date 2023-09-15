@@ -1,94 +1,71 @@
-use std::collections::HashMap;
-
 use axum::{
-    extract::{Query, State},
-    http::StatusCode,
-    Json,
+    extract::{Json, State},
+    http::StatusCode, debug_handler,
 };
+use chrono::Utc;
 use deadpool_sqlite::{rusqlite::params, Pool};
-use flair::FlairDirectory;
+use serde::{Deserialize, Serialize};
 
 use crate::internal_error;
 
-pub(crate) async fn get_user_flair(
-    Query(params): Query<HashMap<String, String>>,
-    State(pool): State<Pool>,
-) -> Result<Json<Vec<FlairDirectory>>, (StatusCode, String)> {
-    let id = match params.get("id") {
-        Some(i) => i,
-        None => {
-            return Err((
-                StatusCode::BAD_REQUEST,
-                String::from("You need to set the 'id' url query"),
-            ))
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub(crate) struct AddUserRequest {
+    pub user_actor_id: String,
+    pub community_actor_id: String,
+    pub flair: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub(crate) struct DeleteUserRequest {
+    user_actor_id: String,
+    community_actor_id: String,
+}
+
+impl DeleteUserRequest {
+    fn new(user_actor_id: String, community_actor_id: String) -> Self {
+        Self {
+            user_actor_id,
+            community_actor_id,
         }
-    };
-
-    let conn = match pool.get().await.map_err(crate::internal_error) {
-        Ok(a) => a,
-        Err(e) => return Err(e),
-    };
-
-    let clone_id = id.clone();
-    match conn
-        .interact(move |conn| {
-            let mut stmt = conn
-                .prepare("SELECT ID, special, ref_id, pos, flair, path FROM flairs where ID = ?")
-                .unwrap();
-            let mut rows = stmt.query([clone_id]).unwrap();
-            let mut users: Vec<FlairDirectory> = vec![];
-            while let Some(row) = rows.next().unwrap() {
-                users.push(FlairDirectory::new(
-                    row.get(0).unwrap_or(None),
-                    row.get(1).unwrap(),
-                    row.get(2).unwrap(),
-                    row.get(3).unwrap(),
-                    row.get(4).unwrap(),
-                    row.get(5).unwrap_or(None),
-                ))
-            }
-
-            return users;
-        })
-        .await
-        .map_err(internal_error)
-    {
-        Err(e) => return Err(e),
-        Ok(o) => return Ok(Json(o)),
     }
 }
 
-pub(crate) async fn add_user(
+#[debug_handler]
+pub(crate) async fn put_user_flair(
     State(pool): State<Pool>,
-    Json(payload): Json<FlairDirectory>,
+    Json(payload): Json<AddUserRequest>,
 ) -> (StatusCode, String) {
     let conn = match pool.get().await {
         Ok(a) => a,
         Err(e) => return internal_error(e),
     };
 
+    let flair_name = payload.flair.clone();
+
     if let Err(e) = conn
         .interact(move |conn| {
-            return conn
-                .execute(
-                    r"INSERT INTO flair_directory
-        (special, ref_id, pos, flair, path)
-        Values (?, ?, ?, ?, ?)
-        ",
-                    params![
-                        payload.special,
-                        payload.ref_id,
-                        payload.pos,
-                        payload.flair,
-                        payload.path
-                    ],
-                )
-                .map_err(internal_error);
+            return conn.execute(
+                r"INSERT INTO user_flairs (user_actor_id, flair_id, assigned_on)
+        SELECT ?, f.id, ?
+        FROM flairs f
+        WHERE f.name = ?
+        LIMIT 1;",
+                params![
+                    payload.user_actor_id,
+                    Utc::now().to_rfc3339(),
+                    payload.flair
+                ],
+            );
         })
         .await
     {
         return crate::internal_error(e);
     }
 
-    (StatusCode::CREATED, format!("Welcome to the party! 🎉"))
+    (
+        StatusCode::CREATED,
+        format!("Added flair {} to database!", flair_name),
+    )
 }
+
+

@@ -1,8 +1,8 @@
 use axum::http::StatusCode;
-use axum::routing::post;
+use axum::routing;
 use axum::{routing::get, Router};
 
-use clap::Parser;
+use clap::{Parser, Args};
 use deadpool_sqlite::Runtime;
 use dotenv::dotenv;
 use std::env;
@@ -14,7 +14,6 @@ use ansi_term::Color;
 
 mod cli;
 mod router;
-
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -38,8 +37,7 @@ async fn main() -> anyhow::Result<()> {
             init_db(&pool).await?;
 
             let app = Router::new()
-                .route("/api/v1/user", get(router::get_user_flair))
-                .route("/api/v1/user", post(router::add_user))
+                .route("/api/v1/user", routing::put(router::put_user_flair))
                 .with_state(pool);
 
             let addr = SocketAddr::from(([127, 0, 0, 1], port));
@@ -48,8 +46,8 @@ async fn main() -> anyhow::Result<()> {
                 .serve(app.into_make_service())
                 .await
                 .unwrap();
-        }
-        None => eprintln!("Run {} to see what commands are available!", Color::Green.paint("flairs --help")),
+        },
+        None => {}
     }
 
     Ok(())
