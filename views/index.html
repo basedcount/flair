@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Flairs</title>
+
+</head>
+
+<body>
+  <div style="margin: auto; width: 50%;">
+    <h1>Add Flair</h1>
+    <form action="/" method="post">
+      <label for="name">Flair Name</label>
+      <input type="text" name="name" placeholder="Flair name">
+      <label for="display_name">Display Name</label>
+      <input type="text" name="display_name" placeholder="Display name">
+      <label for="path">Link or Path to Image</label>
+      <input type="url" name="path" placeholder="Image path">
+      <label for="text">Community Actor ID</label>
+      <input type="text" name="community_actor_id" placeholder="Community actor ID">
+      <label for="mod_only">Mod Only</label>
+      <input type="checkbox" name="mod_only" value="false">
+      <button type="submit">Submit</button>
+    </form>
+  </div>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+    }
+
+    h1 {
+      text-align: center;
+      color: #4CAF50;
+    }
+
+    form {
+      max-width: 1/3;
+      background-color: white;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    input[type=text], input[type=url],
+    select {
+      width: 100%;
+      padding: 12px 20px;
+      margin: 8px 0;
+      display: inline-block;
+      border: none;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+
+    input[type=checkbox] {
+      margin-top: -5px;
+      margin-right: 10px;
+    }
+
+    button[type=submit] {
+      background-color: #4CAF50;
+      color: white;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      float: right;
+    }
+
+    button[type=submit]:hover {
+      background-color: #45a049;
+    }
+  </style>
+</body>
+
+
+
+</html>

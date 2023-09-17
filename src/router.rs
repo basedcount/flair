@@ -1,33 +1,34 @@
 use axum::{
-    extract::{Json, State},
-    http::StatusCode, debug_handler,
+    debug_handler,
+    extract::{Json, Query, State},
+    http::StatusCode,
+    response::Html,
+    Form,
 };
 use chrono::Utc;
 use deadpool_sqlite::{rusqlite::params, Pool};
+use flair::Flair;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
-use crate::internal_error;
+use crate::{
+    db::{get_community_flairs, get_user_community_flairs, add_flair},
+    internal_error,
+};
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, TS)]
+#[ts(export)]
 pub(crate) struct AddUserRequest {
     pub user_actor_id: String,
     pub community_actor_id: String,
     pub flair: String,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, TS)]
+#[ts(export)]
 pub(crate) struct DeleteUserRequest {
-    user_actor_id: String,
-    community_actor_id: String,
-}
-
-impl DeleteUserRequest {
-    fn new(user_actor_id: String, community_actor_id: String) -> Self {
-        Self {
-            user_actor_id,
-            community_actor_id,
-        }
-    }
+    pub user_actor_id: String,
+    pub community_actor_id: String,
 }
 
 #[debug_handler]
@@ -68,4 +69,132 @@ pub(crate) async fn put_user_flair(
     )
 }
 
+#[debug_handler]
+pub(crate) async fn delete_user(
+    State(pool): State<Pool>,
+    Json(payload): Json<DeleteUserRequest>,
+) -> (StatusCode, String) {
+    let conn = match pool.get().await {
+        Ok(a) => a,
+        Err(e) => return internal_error(e),
+    };
 
+    let actor_id = payload.user_actor_id.clone();
+
+    if let Err(e) = conn
+        .interact(move |conn| {
+            return conn.execute(
+                r"delete from user_flairs where user_actor_id = ?",
+                params![payload.user_actor_id,],
+            );
+        })
+        .await
+    {
+        return crate::internal_error(e);
+    }
+
+    (StatusCode::OK, format!("User {actor_id} deleted"))
+}
+
+#[debug_handler]
+pub(crate) async fn render_index() -> Html<&'static str> {
+    let template = include_str!("../views/index.html");
+
+    Html(template)
+}
+
+#[derive(Debug, Deserialize, Serialize, TS)]
+#[ts(export)]
+pub(crate) struct AddFlairForm {
+    pub name: String,
+    pub display_name: String,
+    pub path: Option<String>,
+    pub community_actor_id: String,
+    pub mod_only: bool,
+}
+
+#[debug_handler]
+pub(crate) async fn post_index(
+    State(pool): State<Pool>,
+    Form(payload): Form<AddFlairForm>,
+) -> (StatusCode, String) {
+    let conn = match pool.get().await {
+        Ok(a) => a,
+        Err(e) => return internal_error(e),
+    };
+
+    let name = payload.name.clone();
+
+    if let Err(e) = conn
+        .interact(move |conn| {
+            return add_flair(&conn, &payload)
+        })
+        .await
+    {
+        return crate::internal_error(e);
+    }
+
+    (StatusCode::CREATED, format!("Flair {name} created"))
+}
+
+#[debug_handler]
+pub(crate) async fn post_index_json(
+    State(pool): State<Pool>,
+    Json(payload): Json<AddFlairForm>,
+) -> (StatusCode, String) {
+    let conn = match pool.get().await {
+        Ok(a) => a,
+        Err(e) => return internal_error(e),
+    };
+
+    let name = payload.name.clone();
+
+    if let Err(e) = conn
+        .interact(move |conn| {
+            return add_flair(&conn, &payload)
+        })
+        .await
+    {
+        return crate::internal_error(e);
+    }
+
+    (StatusCode::CREATED, format!("Flair {name} created"))
+}
+
+#[derive(Debug, Deserialize, Serialize, Default, TS)]
+#[ts(export)]
+pub(crate) struct CommunityActorQuery {
+    pub actor_id: String,
+    pub id: Option<String>,
+    pub mod_only: bool,
+}
+
+#[debug_handler]
+pub(crate) async fn get_community_info(
+    State(pool): State<Pool>,
+    Query(payload): Query<CommunityActorQuery>,
+) -> Result<Json<Vec<Flair>>, StatusCode> {
+    let conn = match pool.get().await {
+        Ok(a) => a,
+        Err(e) => return Err(internal_error(e).0),
+    };
+
+    if let Err(e) = conn
+        .interact(move |conn| {
+            let result = if payload.id.is_some() {
+                let r = get_user_community_flairs(conn, &payload).unwrap();
+                r
+            } else {
+                let r = get_community_flairs(conn, &payload).unwrap();
+                r
+            };
+
+            return Json(result);
+        })
+        .await
+    {
+        return Err(crate::internal_error(e).0);
+    }
+
+    Err(StatusCode::INTERNAL_SERVER_ERROR)
+}
