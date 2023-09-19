@@ -1,8 +1,8 @@
 use axum::http::StatusCode;
 use axum::routing;
-use axum::{routing::get, Router};
+use axum::Router;
 
-use clap::{Parser, Args};
+use clap::Parser;
 use deadpool_sqlite::Runtime;
 use dotenv::dotenv;
 use std::env;
@@ -10,9 +10,10 @@ use std::net::SocketAddr;
 
 use crate::cli::{init_db, Commands};
 
-use ansi_term::Color;
+// use ansi_term::Color;
 
 mod cli;
+mod db;
 mod router;
 
 #[tokio::main]
@@ -32,12 +33,23 @@ async fn main() -> anyhow::Result<()> {
             let port: u16 = flairs_port.parse().unwrap_or(6969);
 
             // Database setup
-            let db_config = deadpool_sqlite::Config::new("flairs.db");
+            let db_config = deadpool_sqlite::Config::new(
+                env::var("FLAIR_DB_URL").unwrap_or(String::from("flairs.db")),
+            );
             let pool = db_config.create_pool(Runtime::Tokio1)?;
             init_db(&pool).await?;
 
             let app = Router::new()
+                .route("/", routing::get(router::render_index))
+                .route("/", routing::post(router::post_index))
+                .route("/api/v1/flair", routing::post(router::post_index_json))
                 .route("/api/v1/user", routing::put(router::put_user_flair))
+                .route("/api/v1/user", routing::delete(router::delete_user))
+                .route(
+                    "/api/v1/community",
+                    routing::get(router::get_community_info),
+                )
+                .route("/api/v1/community", routing::post(router::post_index_json))
                 .with_state(pool);
 
             let addr = SocketAddr::from(([127, 0, 0, 1], port));
@@ -46,7 +58,7 @@ async fn main() -> anyhow::Result<()> {
                 .serve(app.into_make_service())
                 .await
                 .unwrap();
-        },
+        }
         None => {}
     }
 
@@ -59,5 +71,6 @@ fn internal_error<E>(err: E) -> (StatusCode, String)
 where
     E: std::error::Error,
 {
+    eprintln!("{}", err.to_string());
     (StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
 }

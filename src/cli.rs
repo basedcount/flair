@@ -22,13 +22,13 @@ pub(crate) async fn init_db(pool: &Pool) -> anyhow::Result<()> {
     let conn = pool.get().await?;
     if let Err(e) = conn
         .interact(|conn| {
-           
+
             let mut flr_stmt = conn
                 .prepare(
                     r"
             CREATE TABLE IF NOT EXISTS flairs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL UNIQUE,
+                name TEXT NOT NULL,
                 display_name TEXT NOT NULL,
                 path TEXT,
                 assigned_on TEXT NOT NULL, -- Representing DateTime<Utc> as TEXT in SQLite ISO format
@@ -44,7 +44,7 @@ pub(crate) async fn init_db(pool: &Pool) -> anyhow::Result<()> {
             r"
                 CREATE TABLE IF NOT EXISTS user_flairs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    user_actor_id INTEGER NOT NULL,
+                    user_actor_id TEXT NOT NULL,
                     flair_id INTEGER NOT NULL,
                     assigned_on TEXT NOT NULL,
                     FOREIGN KEY (flair_id) REFERENCES flairs(id)
@@ -54,7 +54,7 @@ pub(crate) async fn init_db(pool: &Pool) -> anyhow::Result<()> {
         })
         .await
 
-        
+
     {
         return Err(anyhow!("unable to initalize required table {:?}", e));
     }
