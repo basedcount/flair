@@ -5,25 +5,25 @@ use deadpool_sqlite::rusqlite::Connection;
 use flair::Flair;
 
 use crate::router::AddFlairForm;
-use crate::router::CommunityActorQuery;
+use crate::router::GetCommunityFlairsRequest;
+use crate::router::GetUserFlairRequest;
 
 pub(crate) fn get_user_community_flairs(
     client: &mut Connection,
-    pl: &CommunityActorQuery,
+    pl: &GetUserFlairRequest,
 ) -> anyhow::Result<Vec<Flair>> {
     let mut stmt = client.prepare_cached(
         "SELECT f.name, f.display_name, f.path, f.assigned_on, f.community_actor_id, f.mod_only
     FROM flairs f
     JOIN user_flairs uf ON f.id = uf.flair_id
-    WHERE uf.user_actor_id = ? AND f.community_actor_id = ? AND f.mod_only = ?;
+    WHERE uf.user_actor_id = ? AND f.community_actor_id = ?;
     ",
     )?;
 
     let mut rows = stmt
         .query(params![
-            urlencoding::encode(&pl.actor_id),
-            urlencoding::encode(&pl.user_id.as_ref().unwrap()),
-            pl.mod_only.unwrap_or(false)
+            urlencoding::encode(&pl.community_actor_id),
+            urlencoding::encode(&pl.user_actor_id),
         ])
         .unwrap();
 
@@ -59,14 +59,14 @@ pub(crate) fn get_user_community_flairs(
 
 pub(crate) fn get_community_flairs(
     client: &mut Connection,
-    pl: &CommunityActorQuery,
+    pl: &GetCommunityFlairsRequest,
 ) -> anyhow::Result<Vec<Flair>> {
     let mut stmt = client
         .prepare_cached("select * from flairs where community_actor_id = ? and mod_only = ?")?;
 
     let mut rows = stmt
         .query(params![
-            urlencoding::encode(&pl.actor_id),
+            urlencoding::encode(&pl.community_actor_id),
             &pl.mod_only.unwrap_or(false)
         ])
         .unwrap();

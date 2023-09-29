@@ -41,15 +41,12 @@ async fn main() -> anyhow::Result<()> {
 
             let app = Router::new()
                 .route("/", routing::get(router::render_index))
-                .route("/", routing::post(router::post_index))
-                .route("/api/v1/flair", routing::post(router::post_index_json))
+                .route("/api/v1/user", routing::get(router::get_user_flair))   
                 .route("/api/v1/user", routing::put(router::put_user_flair))
                 .route("/api/v1/user", routing::delete(router::delete_user))
-                .route(
-                    "/api/v1/community",
-                    routing::get(router::get_community_info),
-                )
-                .route("/api/v1/community", routing::post(router::post_index_json))
+                .route("/api/v1/community", routing::get(router::get_community_flairs_api)) 
+                .route("/api/v1/community", routing::post(router::post_community_flairs))
+                // .route("/api/v1/setup", routing::get(router::get_community_list))   //todo   
                 .with_state(pool);
 
             let addr = SocketAddr::from(([127, 0, 0, 1], port));
