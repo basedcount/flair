@@ -20,7 +20,7 @@ use crate::{
 pub(crate) struct AddUserRequest {
     pub user_actor_id: String,
     pub community_actor_id: String,
-    pub flair: String,
+    pub flair_name: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, TS)]
@@ -40,21 +40,20 @@ pub(crate) async fn put_user_flair(
         Err(e) => return internal_error(e),
     };
 
-    let flair_name = payload.flair.clone();
+    let flair_name = payload.flair_name.clone();
     let user_name = payload.user_actor_id.clone();
 
     if let Err(e) = conn
         .interact(move |conn| {
             return conn.execute(
-                r"INSERT INTO user_flairs (user_actor_id, flair_id, assigned_on)
-                SELECT ?, f.id, ?
-                FROM flairs f
-                WHERE f.name = ?
-                LIMIT 1;",
+                r"INSERT OR REPLACE INTO user_flairs (user_actor_id, flair_name, flair_community_actor_id, assigned_on)
+                SELECT ?, ?, ?, ?
+                ",
                 params![
                     payload.user_actor_id,
+                    payload.flair_name,
+                    payload.community_actor_id,
                     Utc::now().to_rfc3339(),
-                    payload.flair
                 ],
             );
         })
@@ -84,8 +83,8 @@ pub(crate) async fn delete_user(
     if let Err(e) = conn
         .interact(move |conn| {
             return conn.execute(
-                r"delete from user_flairs where user_actor_id = ?",
-                params![payload.user_actor_id,],
+                r"DELETE FROM user_flairs WHERE user_actor_id = ? AND flair_community_actor_id = ?",
+                params![payload.user_actor_id, payload.community_actor_id],
             );
         })
         .await
@@ -146,7 +145,7 @@ pub(crate) struct GetUserFlairRequest {
 pub(crate) async fn get_user_flair(
     State(pool): State<Pool>,
     Json(payload): Json<GetUserFlairRequest>,
-) -> Result<Json<Vec<Flair>>, StatusCode> {
+) -> Result<Json<Option<Flair>>, StatusCode> {
     let conn = match pool.get().await {
         Ok(a) => a,
         Err(e) => return Err(internal_error(e).0),
@@ -159,7 +158,7 @@ pub(crate) async fn get_user_flair(
         .await;
 
     match result {
-        Ok(flairs) => Ok(Json(flairs)),
+        Ok(flair) => Ok(Json(flair)),
         Err(e) => {
             eprintln!("{}", e); // Fixed the logging interpolation here as well
             Err(crate::internal_error(e).0)
