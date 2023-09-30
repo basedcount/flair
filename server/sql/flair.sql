@@ -1,19 +1,20 @@
 -- Create UserFlairs table if it doesn't exist
 CREATE TABLE IF NOT EXISTS user_flairs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_actor_id INTEGER NOT NULL,
-    flair_id INTEGER NOT NULL,
+    user_actor_id TEXT NOT NULL,
+    flair_name TEXT NOT NULL,
+    flair_community_actor_id TEXT NOT NULL,
     assigned_on TEXT NOT NULL,
-    FOREIGN KEY (flair_id) REFERENCES flairs(id)
+    FOREIGN KEY (flair_name) REFERENCES flairs(name),
+    FOREIGN KEY (flair_community_actor_id) REFERENCES flairs(community_actor_id),
+    PRIMARY KEY (user_actor_id, flair_community_actor_id)
 );
 
 -- Create Flairs table if it doesn't exist
 CREATE TABLE IF NOT EXISTS flairs (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
     display_name TEXT NOT NULL,
     path TEXT,
-    assigned_on TEXT NOT NULL, -- Representing DateTime<Utc> as TEXT in SQLite ISO format
     community_actor_id TEXT NOT NULL,
-    mod_only BOOLEAN NOT NULL
+    mod_only BOOLEAN NOT NULL,
+    PRIMARY KEY(name, community_actor_id)
 );
