@@ -92,7 +92,7 @@ pub(crate) async fn delete_user_api(
         return crate::internal_error(e);
     }
 
-    (StatusCode::OK, format!("User {actor_id} deleted"))
+    (StatusCode::OK, format!("Removed flair from user '{actor_id}'"))
 }
 
 #[debug_handler]
