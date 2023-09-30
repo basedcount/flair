@@ -3,13 +3,13 @@ use deadpool_sqlite::rusqlite::Connection;
 
 use flair::Flair;
 
-use crate::router::AddFlairForm;
-use crate::router::GetCommunityFlairsRequest;
-use crate::router::GetUserFlairRequest;
+use crate::router::AddFlairJson;
+use crate::router::GetFlairsJson;
+use crate::router::GerUserFlairJson;
 
-pub(crate) fn get_user_community_flairs(
+pub(crate) fn get_user_flair(
     client: &mut Connection,
-    pl: &GetUserFlairRequest,
+    pl: &GerUserFlairJson,
 ) -> anyhow::Result<Option<Flair>> {
     let mut stmt = client.prepare_cached("
             SELECT f.name, f.display_name, f.path, f.community_actor_id, f.mod_only
@@ -40,7 +40,7 @@ pub(crate) fn get_user_community_flairs(
 
 pub(crate) fn get_community_flairs(
     client: &mut Connection,
-    pl: &GetCommunityFlairsRequest,
+    pl: &GetFlairsJson,
 ) -> anyhow::Result<Vec<Flair>> {
     //If mod only == true display both non mod and mod flairs
     //If mod only == false display only non mod flairs
@@ -78,7 +78,7 @@ pub(crate) fn get_community_flairs(
     Ok(val)
 }
 
-pub(crate) fn add_flair(client: &Connection, pl: &AddFlairForm) -> anyhow::Result<usize> {
+pub(crate) fn add_flair(client: &Connection, pl: &AddFlairJson) -> anyhow::Result<usize> {
     let result = client.execute(
         r"INSERT INTO flairs (name, display_name, path, community_actor_id, mod_only)
             VALUES (?,?,?,?,?)

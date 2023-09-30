@@ -11,13 +11,13 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use crate::{
-    db::{add_flair, get_community_flairs, get_user_community_flairs},
+    db::{add_flair, get_community_flairs, get_user_flair},
     internal_error,
 };
 
 #[derive(Debug, Deserialize, Serialize, Clone, TS)]
 #[ts(export)]
-pub(crate) struct AddUserRequest {
+pub(crate) struct AddUserFlairJson {
     pub user_actor_id: String,
     pub community_actor_id: String,
     pub flair_name: String,
@@ -25,15 +25,15 @@ pub(crate) struct AddUserRequest {
 
 #[derive(Debug, Deserialize, Serialize, Clone, TS)]
 #[ts(export)]
-pub(crate) struct DeleteUserRequest {
+pub(crate) struct DeleteUserFlairJson {
     pub user_actor_id: String,
     pub community_actor_id: String,
 }
 
 #[debug_handler]
-pub(crate) async fn put_user_flair(
+pub(crate) async fn put_user_flair_api(
     State(pool): State<Pool>,
-    Json(payload): Json<AddUserRequest>,
+    Json(payload): Json<AddUserFlairJson>,
 ) -> (StatusCode, String) {
     let conn = match pool.get().await {
         Ok(a) => a,
@@ -47,7 +47,7 @@ pub(crate) async fn put_user_flair(
         .interact(move |conn| {
             return conn.execute(
                 r"INSERT OR REPLACE INTO user_flairs (user_actor_id, flair_name, flair_community_actor_id, assigned_on)
-                SELECT ?, ?, ?, ?
+                VALUES (?, ?, ?, ?)
                 ",
                 params![
                     payload.user_actor_id,
@@ -69,9 +69,9 @@ pub(crate) async fn put_user_flair(
 }
 
 #[debug_handler]
-pub(crate) async fn delete_user(
+pub(crate) async fn delete_user_api(
     State(pool): State<Pool>,
-    Json(payload): Json<DeleteUserRequest>,
+    Json(payload): Json<DeleteUserFlairJson>,
 ) -> (StatusCode, String) {
     let conn = match pool.get().await {
         Ok(a) => a,
@@ -104,7 +104,7 @@ pub(crate) async fn render_index() -> Html<&'static str> {
 
 #[derive(Debug, Deserialize, Serialize, TS)]
 #[ts(export)]
-pub(crate) struct AddFlairForm {
+pub(crate) struct AddFlairJson {
     pub name: String,
     pub display_name: String,
     pub path: Option<String>,
@@ -113,9 +113,9 @@ pub(crate) struct AddFlairForm {
 }
 
 #[debug_handler]
-pub(crate) async fn post_community_flairs(
+pub(crate) async fn put_community_flairs_api(
     State(pool): State<Pool>,
-    Json(payload): Json<AddFlairForm>,
+    Json(payload): Json<AddFlairJson>,
 ) -> (StatusCode, String) {
     let conn = match pool.get().await {
         Ok(a) => a,
@@ -136,15 +136,15 @@ pub(crate) async fn post_community_flairs(
 
 #[derive(Debug, Deserialize, Serialize, Default, TS)]
 #[ts(export)]
-pub(crate) struct GetUserFlairRequest {
+pub(crate) struct GerUserFlairJson {
     pub community_actor_id: String,
     pub user_actor_id: String,
 }
 
 #[debug_handler]
-pub(crate) async fn get_user_flair(
+pub(crate) async fn get_user_flair_api(
     State(pool): State<Pool>,
-    Json(payload): Json<GetUserFlairRequest>,
+    Json(payload): Json<GerUserFlairJson>,
 ) -> Result<Json<Option<Flair>>, StatusCode> {
     let conn = match pool.get().await {
         Ok(a) => a,
@@ -153,7 +153,7 @@ pub(crate) async fn get_user_flair(
 
     let result = conn
         .interact(move |conn| {
-            get_user_community_flairs(conn, &payload).expect("Issue fetching user flairs")
+            get_user_flair(conn, &payload).expect("Issue fetching user flairs")
         })
         .await;
 
@@ -168,7 +168,7 @@ pub(crate) async fn get_user_flair(
 
 #[derive(Debug, Deserialize, Serialize, Default, TS)]
 #[ts(export)]
-pub(crate) struct GetCommunityFlairsRequest {
+pub(crate) struct GetFlairsJson {
     pub community_actor_id: String,
     pub mod_only: Option<bool>,
 }
@@ -176,7 +176,7 @@ pub(crate) struct GetCommunityFlairsRequest {
 #[debug_handler]
 pub(crate) async fn get_community_flairs_api(
     State(pool): State<Pool>,
-    Json(payload): Json<GetCommunityFlairsRequest>,
+    Json(payload): Json<GetFlairsJson>,
 ) -> Result<Json<Vec<Flair>>, StatusCode> {
     let conn = match pool.get().await {
         Ok(a) => a,
