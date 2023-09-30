@@ -46,6 +46,7 @@ async fn main() -> anyhow::Result<()> {
                 .route("/api/v1/user", routing::delete(router::delete_user_api))
                 .route("/api/v1/community", routing::get(router::get_community_flairs_api)) 
                 .route("/api/v1/community", routing::put(router::put_community_flairs_api))
+                .route("/api/v1/community", routing::delete(router::delete_community_flairs_api))
                 // .route("/api/v1/setup", routing::get(router::get_community_list))   //todo   
                 .with_state(pool);
 
