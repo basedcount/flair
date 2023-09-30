@@ -1,6 +1,6 @@
 use axum::{
     debug_handler,
-    extract::{Json, State},
+    extract::{Json, Query, State},
     http::StatusCode,
     response::Html,
 };
@@ -177,7 +177,7 @@ pub(crate) async fn delete_community_flairs_api(
 
 #[derive(Debug, Deserialize, Serialize, Default, TS)]
 #[ts(export)]
-pub(crate) struct GerUserFlairJson {
+pub(crate) struct GetUserFlairJson {
     pub community_actor_id: String,
     pub user_actor_id: String,
 }
@@ -185,11 +185,19 @@ pub(crate) struct GerUserFlairJson {
 #[debug_handler]
 pub(crate) async fn get_user_flair_api(
     State(pool): State<Pool>,
-    Json(payload): Json<GerUserFlairJson>,
+    Query(GetUserFlairJson {
+        community_actor_id,
+        user_actor_id,
+    }): Query<GetUserFlairJson>,
 ) -> Result<Json<Option<Flair>>, StatusCode> {
     let conn = match pool.get().await {
         Ok(a) => a,
         Err(e) => return Err(internal_error(e).0),
+    };
+
+    let payload = GetUserFlairJson {
+        community_actor_id,
+        user_actor_id,
     };
 
     let result = conn
@@ -215,11 +223,19 @@ pub(crate) struct GetFlairsJson {
 #[debug_handler]
 pub(crate) async fn get_community_flairs_api(
     State(pool): State<Pool>,
-    Json(payload): Json<GetFlairsJson>,
+    Query(GetFlairsJson {
+        community_actor_id,
+        mod_only,
+    }): Query<GetFlairsJson>,
 ) -> Result<Json<Vec<Flair>>, StatusCode> {
     let conn = match pool.get().await {
         Ok(a) => a,
         Err(e) => return Err(internal_error(e).0),
+    };
+
+    let payload = GetFlairsJson {
+        community_actor_id,
+        mod_only,
     };
 
     let result = conn

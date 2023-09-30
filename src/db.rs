@@ -5,11 +5,11 @@ use flair::Flair;
 
 use crate::router::AddFlairJson;
 use crate::router::GetFlairsJson;
-use crate::router::GerUserFlairJson;
+use crate::router::GetUserFlairJson;
 
 pub(crate) fn get_user_flair(
     client: &mut Connection,
-    pl: &GerUserFlairJson,
+    pl: &GetUserFlairJson,
 ) -> anyhow::Result<Option<Flair>> {
     let mut stmt = client.prepare_cached("
             SELECT f.name, f.display_name, f.path, f.community_actor_id, f.mod_only
