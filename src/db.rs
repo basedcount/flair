@@ -80,7 +80,7 @@ pub(crate) fn get_community_flairs(
 
 pub(crate) fn add_flair(client: &Connection, pl: &AddFlairJson) -> anyhow::Result<usize> {
     let result = client.execute(
-        r"INSERT INTO flairs (name, display_name, path, community_actor_id, mod_only)
+        r"INSERT OR REPLACE INTO flairs (name, display_name, path, community_actor_id, mod_only)
             VALUES (?,?,?,?,?)
             ",
         params![
