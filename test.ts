@@ -29,6 +29,7 @@ let tot = 0;
     test('assign flair to user', await assignUserFlair({ community_actor_id, user_actor_id, flair_name: 'auth' }));
     test('flair got assigned', (await getUserFlair({ community_actor_id, user_actor_id }))?.name === 'auth' ?? false);
     test('remove flair from user', await deleteUserFlair({ community_actor_id, user_actor_id }));
+    test('user is now unflaired', await getUserFlair({ community_actor_id, user_actor_id }) === null);
     test('reassign flair to user', await assignUserFlair({ community_actor_id, user_actor_id, flair_name: 'auth' }));
     test('change flair', await assignUserFlair({ community_actor_id, user_actor_id, flair_name: 'based' }));
     test('flair got changed', (await getUserFlair({ community_actor_id, user_actor_id }))?.name === 'based' ?? false);
