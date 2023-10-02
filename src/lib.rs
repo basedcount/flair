@@ -37,8 +37,7 @@ impl Flair {
 
 /// FlairDirectory represents Lemmy instance users. It's designed to be flexable, and exist whether you use
 /// Flairs with your Lemmy's Postgres database or Sqlite, which is why the name's so ambiguous.
-#[derive(Debug, Serialize, Deserialize, Clone, TS)]
-#[ts(export)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct UserFlair {
     pub user_actor_id: String,
     pub flair_name: String,
