@@ -94,3 +94,29 @@ pub(crate) fn add_flair(client: &Connection, pl: &AddFlairJson) -> anyhow::Resul
 
     Ok(result)
 }
+
+pub(crate) fn get_community_list(
+    client: &mut Connection,
+) -> anyhow::Result<Vec<String>> {
+    let mut stmt = client.prepare_cached(
+        "SELECT community_actor_id
+            FROM flairs
+            GROUP BY community_actor_id
+        ",
+    )?;
+
+    let mut rows = stmt
+        .query(params![])
+        .unwrap();
+
+    let mut val: Vec<String> = vec![];
+    while let Ok(s) = rows.next() {
+        if let Some(r) = s {
+            val.push(r.get(0).unwrap());
+        } else {
+            break;
+        }
+    }
+
+    Ok(val)
+}

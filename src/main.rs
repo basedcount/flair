@@ -47,7 +47,7 @@ async fn main() -> anyhow::Result<()> {
                 .route("/api/v1/community", routing::get(router::get_community_flairs_api)) 
                 .route("/api/v1/community", routing::put(router::put_community_flairs_api))
                 .route("/api/v1/community", routing::delete(router::delete_community_flairs_api))
-                // .route("/api/v1/setup", routing::get(router::get_community_list))   //todo   
+                .route("/api/v1/setup", routing::get(router::get_community_list_api))      
                 .with_state(pool);
 
             let addr = SocketAddr::from(([127, 0, 0, 1], port));

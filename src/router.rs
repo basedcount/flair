@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use crate::{
-    db::{add_flair, get_community_flairs, get_user_flair},
+    db::{add_flair, get_community_flairs, get_user_flair, get_community_list},
     internal_error,
 };
 
@@ -248,6 +248,29 @@ pub(crate) async fn get_community_flairs_api(
         Ok(flairs) => Ok(Json(flairs)),
         Err(e) => {
             eprintln!("{}", e); // Fixed the logging interpolation here as well
+            Err(crate::internal_error(e).0)
+        }
+    }
+}
+
+
+#[debug_handler]
+pub(crate) async fn get_community_list_api(
+    State(pool): State<Pool>,
+) -> Result<Json<Vec<String>>, StatusCode> {
+    let conn = match pool.get().await {
+        Ok(a) => a,
+        Err(e) => return Err(internal_error(e).0),
+    };
+
+    let result = conn
+        .interact(move |conn| get_community_list(conn).expect("Issue fetching community list"))
+        .await;
+
+    match result {
+        Ok(flair) => Ok(Json(flair)),
+        Err(e) => {
+            eprintln!("{}", e);
             Err(crate::internal_error(e).0)
         }
     }
