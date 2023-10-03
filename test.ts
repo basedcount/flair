@@ -18,7 +18,7 @@ let tot = 0;
     console.log('Welcome to the "flair" testing script. The script assumes the database to be empty before execution.\nIf the first test fails you might have to start the dev server with "cargo run -- serve".\nIf the 2nd or 3rd tests fail you might have to delete your "flairs.db" file.\n');
 
     test('server is online', await isServerOnline());
-    test('no saved flairs on startup', (await getFlairs({ community_actor_id, mod_only: true })).length === 0);
+    test('no saved flairs on startup', (await listCommunitiesWithFlairs()).length === 0);
     test('user doesn\'t have a flair on startup', await getUserFlair({ community_actor_id, user_actor_id }) === null);
     test('add user flair', await addFlair({ community_actor_id, display_name: 'TEMP', mod_only: false, name: 'auth', path: '' }));
     test('flair got added', (await getFlairs({ community_actor_id, mod_only: false })).length === 1);
@@ -26,6 +26,7 @@ let tot = 0;
     test('existing flair got updated', (await getFlairs({ community_actor_id, mod_only: false }))[0].display_name === 'AuthCenter');
     test('add mod only user flair', await addFlair({ community_actor_id, display_name: 'Based', mod_only: true, name: 'based', path: '' }));
     test('mod flair got added', (await getFlairs({ community_actor_id, mod_only: true })).length === 2);
+    test('community has flairs enabled', (await listCommunitiesWithFlairs()).length > 0);
     test('assign flair to user', await assignUserFlair({ community_actor_id, user_actor_id, flair_name: 'auth' }));
     test('flair got assigned', (await getUserFlair({ community_actor_id, user_actor_id }))?.name === 'auth' ?? false);
     test('remove flair from user', await deleteUserFlair({ community_actor_id, user_actor_id }));
@@ -92,6 +93,11 @@ async function assignUserFlair(params: AddUserFlairJson) {
 async function deleteUserFlair(params: DeleteUserFlairJson) {
     const res = await DELETE('/v1/user', params);
     return res.ok;
+}
+
+async function listCommunitiesWithFlairs() {
+    const res = await GET('/v1/setup', {});
+    return await res.json() as Array<String>;
 }
 
 /*  HTTP METHOD WRAPPERS    */
