@@ -12,11 +12,12 @@ documentation = "https://docs.rs/flair"
 [dependencies]
 ansi_term = { version = "0.12.1", features = ["serde"] }
 anyhow = "1.0.75"
-axum = { version = "0.6.20", features = ["json", "macros"] }
+axum = { version = "0.6.20", features = ["json", "macros", "headers"] }
 chrono = { version = "0.4.29", features = ["serde"] }
 clap = { version = "4.4.2", features = ["derive"] }
 deadpool-sqlite = { version = "0.5.0", features = ["rt_tokio_1", "serde"] }
 dotenv = "0.15.0"
+reqwest = { version = "0.11.22", features = ["json"] }
 serde = { version = "1.0.188", features = ["derive"] }
 serde_json = "1.0.105"
 tokio = { version = "1.32.0", features = ["full"] }

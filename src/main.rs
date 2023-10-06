@@ -14,6 +14,7 @@ use crate::cli::{init_db, Commands};
 mod cli;
 mod db;
 mod router;
+mod verify;
 
 #[derive(Clone)]
 struct AppState {
