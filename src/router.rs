@@ -14,7 +14,7 @@ use ts_rs::TS;
 use crate::{
     db::{add_flair, get_community_flairs, get_community_list, get_user_flair},
     internal_error, AppState,
-    verify::verify_user,
+    verify::{verify_user, verify_mod},
 };
 
 #[derive(Debug, Deserialize, Serialize, Clone, TS)]
@@ -136,8 +136,16 @@ pub(crate) struct AddFlairJson {
 #[debug_handler]
 pub(crate) async fn put_community_flairs_api(
     State(state): State<AppState>,
+    TypedHeader(jwt): TypedHeader<Authorization<Bearer>>,
     Json(payload): Json<AddFlairJson>,
 ) -> (StatusCode, String) {
+    match verify_mod(&state.lemmy_port, &jwt.token(), &payload.community_actor_id)
+    .await
+    {
+        Ok(true) => (),
+        Ok(false) | Err(_) => return (StatusCode::UNAUTHORIZED, "Unauthorized".to_string()),
+    }
+
     let conn = match state.pool.get().await {
         Ok(a) => a,
         Err(e) => return internal_error(e),
@@ -165,8 +173,16 @@ pub(crate) struct DeleteFlairJson {
 #[debug_handler]
 pub(crate) async fn delete_community_flairs_api(
     State(state): State<AppState>,
+    TypedHeader(jwt): TypedHeader<Authorization<Bearer>>,
     Json(payload): Json<DeleteFlairJson>,
 ) -> (StatusCode, String) {
+    match verify_mod(&state.lemmy_port, &jwt.token(), &payload.community_actor_id)
+    .await
+    {
+        Ok(true) => (),
+        Ok(false) | Err(_) => return (StatusCode::UNAUTHORIZED, "Unauthorized".to_string()),
+    }
+
     let conn = match state.pool.get().await {
         Ok(a) => a,
         Err(e) => return internal_error(e),

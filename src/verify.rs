@@ -63,3 +63,28 @@ pub async fn verify_user(
 
     Ok(person_actor_id == user_actor_id || moderated.contains(&community_actor_id.to_string()))
 }
+
+///Polls the Lemmy API, verifies if a user is a community moderator
+/// - **Mods** are allowed to add and delete community flairs
+/// - **Users** aren't allowed to do anything
+pub async fn verify_mod(
+    lemmy_port: &u16,
+    jwt: &str,
+    community_actor_id: &str,
+) ->Result<bool, Box<dyn Error>>{
+    let url = format!("http://127.0.0.1:{}/api/v3/site?auth={}", lemmy_port, jwt);
+    let cookie = format!("jwt={}", jwt);
+
+    let client = reqwest::Client::new();
+    let res = client.get(&url).header(COOKIE, cookie).send().await?;
+
+    let json: Site = res.json().await?;
+    let moderated = &json
+        .my_user
+        .moderates
+        .into_iter()
+        .map(|el| el.community.actor_id)
+        .collect::<Vec<String>>();
+
+    Ok(moderated.contains(&community_actor_id.to_string()))
+}
