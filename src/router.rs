@@ -1,18 +1,20 @@
 use axum::{
     debug_handler,
-    extract::{Json, Query, State},
+    extract::{Json, Query, State, TypedHeader},
+    headers::{authorization::Bearer, Authorization},
     http::StatusCode,
     response::Html,
 };
 use chrono::Utc;
-use deadpool_sqlite::{rusqlite::params, Pool};
+use deadpool_sqlite::rusqlite::params;
 use flair::Flair;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
 use crate::{
-    db::{add_flair, get_community_flairs, get_user_flair, get_community_list},
-    internal_error,
+    db::{add_flair, get_community_flairs, get_community_list, get_user_flair},
+    internal_error, AppState,
+    verify::verify_user,
 };
 
 #[derive(Debug, Deserialize, Serialize, Clone, TS)]
@@ -32,10 +34,18 @@ pub(crate) struct DeleteUserFlairJson {
 
 #[debug_handler]
 pub(crate) async fn put_user_flair_api(
-    State(pool): State<Pool>,
+    State(state): State<AppState>,
+    TypedHeader(jwt): TypedHeader<Authorization<Bearer>>,
     Json(payload): Json<AddUserFlairJson>,
 ) -> (StatusCode, String) {
-    let conn = match pool.get().await {
+    match verify_user(&state.lemmy_port, &jwt.token(), &payload.user_actor_id, &payload.community_actor_id)
+    .await
+    {
+        Ok(true) => (),
+        Ok(false) | Err(_) => return (StatusCode::UNAUTHORIZED, "Unauthorized".to_string()),
+    }
+
+    let conn = match state.pool.get().await {
         Ok(a) => a,
         Err(e) => return internal_error(e),
     };
@@ -70,10 +80,18 @@ pub(crate) async fn put_user_flair_api(
 
 #[debug_handler]
 pub(crate) async fn delete_user_api(
-    State(pool): State<Pool>,
+    State(state): State<AppState>,
+    TypedHeader(jwt): TypedHeader<Authorization<Bearer>>,
     Json(payload): Json<DeleteUserFlairJson>,
 ) -> (StatusCode, String) {
-    let conn = match pool.get().await {
+    match verify_user(&state.lemmy_port, &jwt.token(), &payload.user_actor_id, &payload.community_actor_id)
+    .await
+    {
+        Ok(true) => (),
+        Ok(false) | Err(_) => return (StatusCode::UNAUTHORIZED, "Unauthorized".to_string()),
+    }
+
+    let conn = match state.pool.get().await {
         Ok(a) => a,
         Err(e) => return internal_error(e),
     };
@@ -117,10 +135,10 @@ pub(crate) struct AddFlairJson {
 
 #[debug_handler]
 pub(crate) async fn put_community_flairs_api(
-    State(pool): State<Pool>,
+    State(state): State<AppState>,
     Json(payload): Json<AddFlairJson>,
 ) -> (StatusCode, String) {
-    let conn = match pool.get().await {
+    let conn = match state.pool.get().await {
         Ok(a) => a,
         Err(e) => return internal_error(e),
     };
@@ -146,10 +164,10 @@ pub(crate) struct DeleteFlairJson {
 
 #[debug_handler]
 pub(crate) async fn delete_community_flairs_api(
-    State(pool): State<Pool>,
+    State(state): State<AppState>,
     Json(payload): Json<DeleteFlairJson>,
 ) -> (StatusCode, String) {
-    let conn = match pool.get().await {
+    let conn = match state.pool.get().await {
         Ok(a) => a,
         Err(e) => return internal_error(e),
     };
@@ -184,13 +202,13 @@ pub(crate) struct GetUserFlairJson {
 
 #[debug_handler]
 pub(crate) async fn get_user_flair_api(
-    State(pool): State<Pool>,
+    State(state): State<AppState>,
     Query(GetUserFlairJson {
         community_actor_id,
         user_actor_id,
     }): Query<GetUserFlairJson>,
 ) -> Result<Json<Option<Flair>>, StatusCode> {
-    let conn = match pool.get().await {
+    let conn = match state.pool.get().await {
         Ok(a) => a,
         Err(e) => return Err(internal_error(e).0),
     };
@@ -222,13 +240,13 @@ pub(crate) struct GetFlairsJson {
 
 #[debug_handler]
 pub(crate) async fn get_community_flairs_api(
-    State(pool): State<Pool>,
+    State(state): State<AppState>,
     Query(GetFlairsJson {
         community_actor_id,
         mod_only,
     }): Query<GetFlairsJson>,
 ) -> Result<Json<Vec<Flair>>, StatusCode> {
-    let conn = match pool.get().await {
+    let conn = match state.pool.get().await {
         Ok(a) => a,
         Err(e) => return Err(internal_error(e).0),
     };
@@ -253,12 +271,11 @@ pub(crate) async fn get_community_flairs_api(
     }
 }
 
-
 #[debug_handler]
 pub(crate) async fn get_community_list_api(
-    State(pool): State<Pool>,
+    State(state): State<AppState>,
 ) -> Result<Json<Vec<String>>, StatusCode> {
-    let conn = match pool.get().await {
+    let conn = match state.pool.get().await {
         Ok(a) => a,
         Err(e) => return Err(internal_error(e).0),
     };
