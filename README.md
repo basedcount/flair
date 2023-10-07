@@ -20,10 +20,10 @@ Flair is designed to be ran adjacently to the Lemmy backend. In its current stat
 
 Flair only includes a REST API supporting the microservice. If you are looking to add this feature on your Lemmy instance, you should also adopt a new UI. We recommend you check out [kaleidoscope](https://github.com/basedcount/kaleidoscope), a fork of the Lemmy UI built by us to be 100% integrated with Flair.
 ### Docker
-It is recommended to deploy the microservice with Docker, by pulling the latest version of the [image](https://hub.docker.com/repository/docker/ornatot/flair/general).
-### Cargo
+It is recommended to deploy the microservice with Docker, by pulling the latest version of the [image](https://hub.docker.com/repository/docker/ornatot/flair/general) and adding it to the Lemmy docker-compose file.
+<!-- ### Cargo
 Alternatively, it is also possible to run the server with the following command  
-`cargo run -- serve`
+`cargo run -- serve` -->
 
 ## Environment variables
 Flair can be configured by modifying the following environment variables. Please note that changing any of these values might break the Docker image.

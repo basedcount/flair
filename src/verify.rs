@@ -42,7 +42,7 @@ pub async fn verify_user(
     user_actor_id: &str,
     community_actor_id: &str,
 ) ->Result<bool, Box<dyn Error>>{
-    let url = format!("http://127.0.0.1:{}/api/v3/site?auth={}", lemmy_port, jwt);
+    let url = format!("http://lemmy:{}/api/v3/site?auth={}", lemmy_port, jwt);
     let cookie = format!("jwt={}", jwt);
 
     let client = reqwest::Client::new();
@@ -72,7 +72,7 @@ pub async fn verify_mod(
     jwt: &str,
     community_actor_id: &str,
 ) ->Result<bool, Box<dyn Error>>{
-    let url = format!("http://127.0.0.1:{}/api/v3/site?auth={}", lemmy_port, jwt);
+    let url = format!("http://lemmy:{}/api/v3/site?auth={}", lemmy_port, jwt);
     let cookie = format!("jwt={}", jwt);
 
     let client = reqwest::Client::new();
