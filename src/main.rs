@@ -46,6 +46,7 @@ async fn main() -> anyhow::Result<()> {
             }
             let lemmy_port: u16 = lemmy_port_env.parse().unwrap_or(8536);
 
+            println!("The flair server is now running on port {}, polling a Lemmy instance on port {}!", port, lemmy_port);
             // Database setup
             let db_config = deadpool_sqlite::Config::new(
                 env::var("FLAIR_DB_URL").unwrap_or(String::from("flairs.db")),
@@ -66,7 +67,7 @@ async fn main() -> anyhow::Result<()> {
                 .route("/api/v1/setup", routing::get(router::get_community_list_api))      
                 .with_state(app_state);
 
-            let addr = SocketAddr::from(([127, 0, 0, 1], port));
+            let addr = SocketAddr::from(([0, 0, 0, 0], port));
             tracing::debug!("listening on {}", addr);
             axum::Server::bind(&addr)
                 .serve(app.into_make_service())
