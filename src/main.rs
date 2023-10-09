@@ -49,7 +49,7 @@ async fn main() -> anyhow::Result<()> {
             println!("The flair server is now running on port {}, polling a Lemmy instance on port {}!", port, lemmy_port);
             // Database setup
             let db_config = deadpool_sqlite::Config::new(
-                env::var("FLAIR_DB_URL").unwrap_or(String::from("flairs.db")),
+                env::var("FLAIR_DB_URL").unwrap_or(String::from("./database/flairs.db")),
             );
             let pool = db_config.create_pool(Runtime::Tokio1)?;
             init_db(&pool).await?;
