@@ -7,3 +7,5 @@ flairs
 # Added by cargo
 
 /target
+
+prod.ts

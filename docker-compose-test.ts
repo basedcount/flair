@@ -28,9 +28,9 @@ let tot = 0;
     console.log('\n===COMMUNITY===');
     test('add user flair', await addFlair({ community_actor_id, display_name: 'TEMP', mod_only: false, name: 'auth', path: '' }, jwt1));
     test('flair got added', (await getFlairs({ community_actor_id, mod_only: false })).length === 1);
-    test('update existing user flair', await addFlair({ community_actor_id, display_name: 'AuthCenter', mod_only: false, name: 'auth', path: '' }, jwt1));
+    test('update existing user flair', await addFlair({ community_actor_id, display_name: 'AuthCenter', mod_only: false, name: 'auth', path: 'https://emoji.redditmedia.com/16q94zxonar31_t5_3ipa1/auth' }, jwt1));
     test('existing flair got updated', (await getFlairs({ community_actor_id, mod_only: false }))[0].display_name === 'AuthCenter');
-    test('add mod only user flair', await addFlair({ community_actor_id, display_name: 'Based', mod_only: true, name: 'based', path: '' }, jwt1));
+    test('add mod only user flair', await addFlair({ community_actor_id, display_name: 'Based', mod_only: true, name: 'based', path: 'https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fessereuomo.it%2Fwp-content%2Fuploads%2F2021%2F10%2Fsdsdsd-888x1024.jpg&f=1&nofb=1&ipt=35c863ea4090164cdeb3c9a26373a055e773a838e72a10804d6768557ec2accb&ipo=images' }, jwt1));
     test('mod flair got added', (await getFlairs({ community_actor_id, mod_only: true })).length === 2);
     test('community has flairs enabled', (await listCommunitiesWithFlairs()).length > 0);
 
