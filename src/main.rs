@@ -21,6 +21,7 @@ struct AppState {
     pool: Pool,
     lemmy_port: u16,
     docker: bool,
+    lemmy_domain: String,
 }
 
 #[derive(Clone)]
@@ -29,6 +30,7 @@ struct Env {
     lemmy_port: u16,
     docker: bool,
     db_path: String,
+    lemmy_domain: String,
 }
 
 #[tokio::main]
@@ -40,7 +42,7 @@ async fn main() -> anyhow::Result<()> {
     match &args.command {
         Some(Commands::Serve) => {
             let env = load_env();
-            println!("The flair server is now running with {} on port {}, polling a Lemmy instance on port {}!", if env.docker {"Docker"} else {"Cargo"}, env.flairs_port, env.lemmy_port);
+            println!("The flair server is now running with {} on port {}, polling the {} Lemmy instance on port {}!", if env.docker {"Docker"} else {"Cargo"}, env.flairs_port, env.lemmy_domain, env.lemmy_port);
 
             // Database setup
             let db_config = deadpool_sqlite::Config::new(env.db_path);
@@ -51,6 +53,7 @@ async fn main() -> anyhow::Result<()> {
                 pool,
                 lemmy_port: env.lemmy_port,
                 docker: env.docker,
+                lemmy_domain: env.lemmy_domain,
             };
 
             let app = Router::new()
@@ -118,11 +121,16 @@ fn load_env() -> Env {
     // Retrieve the path where the sqlite DB should be saved
     let db_path = env::var("FLAIR_DB_URL").unwrap_or(String::from("./database/flairs.db"));
 
+    // Retrieve the domain of the current lemmy instance
+    let lemmy_domain =
+        env::var("LEMMY_DOMAIN").expect("The LEMMY_DOMAIN environment variable must be set");
+
     return Env {
         flairs_port,
         lemmy_port,
         docker,
         db_path,
+        lemmy_domain,
     };
 }
 
