@@ -20,7 +20,7 @@ struct LocalUser {
 
 #[derive(Serialize, Deserialize)]
 struct Person {
-    actor_id: String
+    actor_id: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -38,11 +38,17 @@ struct Community {
 /// - **Users** can only change their own flair
 pub async fn verify_user(
     lemmy_port: &u16,
+    docker: &bool,
     jwt: &str,
     user_actor_id: &str,
     community_actor_id: &str,
-) ->Result<bool, Box<dyn Error>>{
-    let url = format!("http://lemmy:{}/api/v3/site?auth={}", lemmy_port, jwt);
+) -> Result<bool, Box<dyn Error>> {
+    let url = if *docker {
+        format!("http://lemmy:{}/api/v3/site?auth={}", lemmy_port, jwt)
+    } else {
+        format!("http://127.0.0.1:{}/api/v3/site?auth={}", lemmy_port, jwt)
+    };
+
     let cookie = format!("jwt={}", jwt);
 
     let client = reqwest::Client::new();
@@ -55,11 +61,7 @@ pub async fn verify_user(
         .into_iter()
         .map(|el| el.community.actor_id)
         .collect::<Vec<String>>();
-    let person_actor_id = json.
-        my_user
-        .local_user_view
-        .person
-        .actor_id;
+    let person_actor_id = json.my_user.local_user_view.person.actor_id;
 
     Ok(person_actor_id == user_actor_id || moderated.contains(&community_actor_id.to_string()))
 }
@@ -69,10 +71,16 @@ pub async fn verify_user(
 /// - **Users** aren't allowed to do anything
 pub async fn verify_mod(
     lemmy_port: &u16,
+    docker: &bool,
     jwt: &str,
     community_actor_id: &str,
-) ->Result<bool, Box<dyn Error>>{
-    let url = format!("http://lemmy:{}/api/v3/site?auth={}", lemmy_port, jwt);
+) -> Result<bool, Box<dyn Error>> {
+    let url = if *docker {
+        format!("http://lemmy:{}/api/v3/site?auth={}", lemmy_port, jwt)
+    } else {
+        format!("http://127.0.0.1:{}/api/v3/site?auth={}", lemmy_port, jwt)
+    };
+    
     let cookie = format!("jwt={}", jwt);
 
     let client = reqwest::Client::new();

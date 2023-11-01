@@ -20,6 +20,7 @@ mod verify;
 struct AppState {
     pool: Pool,
     lemmy_port: u16,
+    docker: bool,
 }
 
 #[tokio::main]
@@ -38,7 +39,7 @@ async fn main() -> anyhow::Result<()> {
             }
             let port: u16 = flairs_port.parse().unwrap_or(6969);
 
-            // Retrieve port where Lemmy is running - defaults to
+            // Retrieve port where Lemmy is running - defaults to 8536
             let mut lemmy_port_env = env::var("LEMMY_PORT").unwrap_or(String::from("8536"));
             if lemmy_port_env.starts_with(":") {
                 eprintln!("Please remove the ':' on your LEMMY_PORT environment variable");
@@ -46,7 +47,16 @@ async fn main() -> anyhow::Result<()> {
             }
             let lemmy_port: u16 = lemmy_port_env.parse().unwrap_or(8536);
 
-            println!("The flair server is now running on port {}, polling a Lemmy instance on port {}!", port, lemmy_port);
+            // Check if Flair is running in a Docker container (true, default) or on bare metal with Cargo (false)
+            let docker_env = env::var("DOCKER").unwrap_or(String::from("true"));
+            let docker: bool = docker_env.parse().unwrap_or(false);
+
+            if docker {
+                println!("The flair server is now running with Docker on port {}, polling a Lemmy instance on port {}!", port, lemmy_port);
+            } else {
+                println!("The flair server is now running with Cargo on port {}, polling a Lemmy instance on port {}!", port, lemmy_port);
+            }
+
             // Database setup
             let db_config = deadpool_sqlite::Config::new(
                 env::var("FLAIR_DB_URL").unwrap_or(String::from("./database/flairs.db")),
@@ -54,17 +64,33 @@ async fn main() -> anyhow::Result<()> {
             let pool = db_config.create_pool(Runtime::Tokio1)?;
             init_db(&pool).await?;
 
-            let app_state = AppState { pool, lemmy_port };
+            let app_state = AppState {
+                pool,
+                lemmy_port,
+                docker,
+            };
 
             let app = Router::new()
                 .route("/", routing::get(router::render_index))
-                .route("/api/v1/user", routing::get(router::get_user_flair_api))   
+                .route("/api/v1/user", routing::get(router::get_user_flair_api))
                 .route("/api/v1/user", routing::put(router::put_user_flair_api))
                 .route("/api/v1/user", routing::delete(router::delete_user_api))
-                .route("/api/v1/community", routing::get(router::get_community_flairs_api)) 
-                .route("/api/v1/community", routing::put(router::put_community_flairs_api))
-                .route("/api/v1/community", routing::delete(router::delete_community_flairs_api))
-                .route("/api/v1/setup", routing::get(router::get_community_list_api))      
+                .route(
+                    "/api/v1/community",
+                    routing::get(router::get_community_flairs_api),
+                )
+                .route(
+                    "/api/v1/community",
+                    routing::put(router::put_community_flairs_api),
+                )
+                .route(
+                    "/api/v1/community",
+                    routing::delete(router::delete_community_flairs_api),
+                )
+                .route(
+                    "/api/v1/setup",
+                    routing::get(router::get_community_list_api),
+                )
                 .with_state(app_state);
 
             let addr = SocketAddr::from(([0, 0, 0, 0], port));

@@ -13,8 +13,9 @@ use ts_rs::TS;
 
 use crate::{
     db::{add_flair, get_community_flairs, get_community_list, get_user_flair},
-    internal_error, AppState,
-    verify::{verify_user, verify_mod},
+    internal_error,
+    verify::{verify_mod, verify_user},
+    AppState,
 };
 
 #[derive(Debug, Deserialize, Serialize, Clone, TS)]
@@ -38,7 +39,13 @@ pub(crate) async fn put_user_flair_api(
     TypedHeader(jwt): TypedHeader<Authorization<Bearer>>,
     Json(payload): Json<AddUserFlairJson>,
 ) -> (StatusCode, String) {
-    match verify_user(&state.lemmy_port, &jwt.token(), &payload.user_actor_id, &payload.community_actor_id)
+    match verify_user(
+        &state.lemmy_port,
+        &state.docker,
+        &jwt.token(),
+        &payload.user_actor_id,
+        &payload.community_actor_id,
+    )
     .await
     {
         Ok(true) => (),
@@ -84,7 +91,13 @@ pub(crate) async fn delete_user_api(
     TypedHeader(jwt): TypedHeader<Authorization<Bearer>>,
     Json(payload): Json<DeleteUserFlairJson>,
 ) -> (StatusCode, String) {
-    match verify_user(&state.lemmy_port, &jwt.token(), &payload.user_actor_id, &payload.community_actor_id)
+    match verify_user(
+        &state.lemmy_port,
+        &state.docker,
+        &jwt.token(),
+        &payload.user_actor_id,
+        &payload.community_actor_id,
+    )
     .await
     {
         Ok(true) => (),
@@ -139,7 +152,12 @@ pub(crate) async fn put_community_flairs_api(
     TypedHeader(jwt): TypedHeader<Authorization<Bearer>>,
     Json(payload): Json<AddFlairJson>,
 ) -> (StatusCode, String) {
-    match verify_mod(&state.lemmy_port, &jwt.token(), &payload.community_actor_id)
+    match verify_mod(
+        &state.lemmy_port,
+        &state.docker,
+        &jwt.token(),
+        &payload.community_actor_id,
+    )
     .await
     {
         Ok(true) => (),
@@ -176,7 +194,12 @@ pub(crate) async fn delete_community_flairs_api(
     TypedHeader(jwt): TypedHeader<Authorization<Bearer>>,
     Json(payload): Json<DeleteFlairJson>,
 ) -> (StatusCode, String) {
-    match verify_mod(&state.lemmy_port, &jwt.token(), &payload.community_actor_id)
+    match verify_mod(
+        &state.lemmy_port,
+        &state.docker,
+        &jwt.token(),
+        &payload.community_actor_id,
+    )
     .await
     {
         Ok(true) => (),
