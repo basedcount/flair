@@ -45,6 +45,7 @@ pub(crate) async fn put_user_flair_api(
         &jwt.token(),
         &payload.user_actor_id,
         &payload.community_actor_id,
+        &state.lemmy_domain,
     )
     .await
     {
@@ -97,6 +98,7 @@ pub(crate) async fn delete_user_api(
         &jwt.token(),
         &payload.user_actor_id,
         &payload.community_actor_id,
+        &state.lemmy_domain,
     )
     .await
     {
@@ -157,6 +159,7 @@ pub(crate) async fn put_community_flairs_api(
         &state.docker,
         &jwt.token(),
         &payload.community_actor_id,
+        &state.lemmy_domain,
     )
     .await
     {
@@ -199,6 +202,7 @@ pub(crate) async fn delete_community_flairs_api(
         &state.docker,
         &jwt.token(),
         &payload.community_actor_id,
+        &state.lemmy_domain,
     )
     .await
     {

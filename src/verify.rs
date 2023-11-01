@@ -42,12 +42,9 @@ pub async fn verify_user(
     jwt: &str,
     user_actor_id: &str,
     community_actor_id: &str,
+    lemmy_domain: &str,
 ) -> Result<bool, Box<dyn Error>> {
-    let url = if *docker {
-        format!("http://lemmy:{}/api/v3/site?auth={}", lemmy_port, jwt)
-    } else {
-        format!("http://127.0.0.1:{}/api/v3/site?auth={}", lemmy_port, jwt)
-    };
+    let url = get_url(lemmy_port, jwt, lemmy_domain, docker);
 
     let cookie = format!("jwt={}", jwt);
 
@@ -74,13 +71,10 @@ pub async fn verify_mod(
     docker: &bool,
     jwt: &str,
     community_actor_id: &str,
+    lemmy_domain: &str,
 ) -> Result<bool, Box<dyn Error>> {
-    let url = if *docker {
-        format!("http://lemmy:{}/api/v3/site?auth={}", lemmy_port, jwt)
-    } else {
-        format!("http://127.0.0.1:{}/api/v3/site?auth={}", lemmy_port, jwt)
-    };
-    
+    let url = get_url(lemmy_port, jwt, lemmy_domain, docker);
+
     let cookie = format!("jwt={}", jwt);
 
     let client = reqwest::Client::new();
@@ -95,4 +89,14 @@ pub async fn verify_mod(
         .collect::<Vec<String>>();
 
     Ok(moderated.contains(&community_actor_id.to_string()))
+}
+
+fn get_url(port: &u16, jwt: &str, domain: &str, docker: &bool) -> String {
+    let url = if *docker {
+        format!("http://lemmy:{}/api/v3/site?auth={}", port, jwt)
+    } else {
+        format!("http://127.0.0.1:{}/api/v3/site?auth={}", port, jwt)
+    };
+
+    return url;
 }
