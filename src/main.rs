@@ -23,6 +23,14 @@ struct AppState {
     docker: bool,
 }
 
+#[derive(Clone)]
+struct Env {
+    flairs_port: u16,
+    lemmy_port: u16,
+    docker: bool,
+    db_path: String,
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenv().ok();
@@ -31,43 +39,18 @@ async fn main() -> anyhow::Result<()> {
     let args = cli::Args::parse();
     match &args.command {
         Some(Commands::Serve) => {
-            // Retrieve port where flair will run - defaults to 6969
-            let mut flairs_port = env::var("FLAIRS_PORT").unwrap_or(String::from("6969"));
-            if flairs_port.starts_with(":") {
-                eprintln!("Please remove the ':' on your FLAIRS_PORT environment variable");
-                flairs_port = flairs_port.trim_start_matches(":").to_string();
-            }
-            let port: u16 = flairs_port.parse().unwrap_or(6969);
-
-            // Retrieve port where Lemmy is running - defaults to 8536
-            let mut lemmy_port_env = env::var("LEMMY_PORT").unwrap_or(String::from("8536"));
-            if lemmy_port_env.starts_with(":") {
-                eprintln!("Please remove the ':' on your LEMMY_PORT environment variable");
-                lemmy_port_env = lemmy_port_env.trim_start_matches(":").to_string();
-            }
-            let lemmy_port: u16 = lemmy_port_env.parse().unwrap_or(8536);
-
-            // Check if Flair is running in a Docker container (true, default) or on bare metal with Cargo (false)
-            let docker_env = env::var("DOCKER").unwrap_or(String::from("true"));
-            let docker: bool = docker_env.parse().unwrap_or(false);
-
-            if docker {
-                println!("The flair server is now running with Docker on port {}, polling a Lemmy instance on port {}!", port, lemmy_port);
-            } else {
-                println!("The flair server is now running with Cargo on port {}, polling a Lemmy instance on port {}!", port, lemmy_port);
-            }
+            let env = load_env();
+            println!("The flair server is now running with {} on port {}, polling a Lemmy instance on port {}!", if env.docker {"Docker"} else {"Cargo"}, env.flairs_port, env.lemmy_port);
 
             // Database setup
-            let db_config = deadpool_sqlite::Config::new(
-                env::var("FLAIR_DB_URL").unwrap_or(String::from("./database/flairs.db")),
-            );
+            let db_config = deadpool_sqlite::Config::new(env.db_path);
             let pool = db_config.create_pool(Runtime::Tokio1)?;
             init_db(&pool).await?;
 
             let app_state = AppState {
                 pool,
-                lemmy_port,
-                docker,
+                lemmy_port: env.lemmy_port,
+                docker: env.docker,
             };
 
             let app = Router::new()
@@ -93,7 +76,7 @@ async fn main() -> anyhow::Result<()> {
                 )
                 .with_state(app_state);
 
-            let addr = SocketAddr::from(([0, 0, 0, 0], port));
+            let addr = SocketAddr::from(([0, 0, 0, 0], env.flairs_port));
             tracing::debug!("listening on {}", addr);
             axum::Server::bind(&addr)
                 .serve(app.into_make_service())
@@ -104,6 +87,43 @@ async fn main() -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+/// Loads the following environment variables:
+/// - `FLAIRS_PORT int`
+/// - `LEMMY_PORT int`
+/// - `DOCKER bool`
+/// - `FLAIR_DB_URL string`
+fn load_env() -> Env {
+    // Retrieve port where flair will run - defaults to 6969
+    let mut flairs_port_env = env::var("FLAIRS_PORT").unwrap_or(String::from("6969"));
+    if flairs_port_env.starts_with(":") {
+        eprintln!("Please remove the ':' on your FLAIRS_PORT environment variable");
+        flairs_port_env = flairs_port_env.trim_start_matches(":").to_string();
+    }
+    let flairs_port: u16 = flairs_port_env.parse().unwrap_or(6969);
+
+    // Retrieve port where Lemmy is running - defaults to 8536
+    let mut lemmy_port_env = env::var("LEMMY_PORT").unwrap_or(String::from("8536"));
+    if lemmy_port_env.starts_with(":") {
+        eprintln!("Please remove the ':' on your LEMMY_PORT environment variable");
+        lemmy_port_env = lemmy_port_env.trim_start_matches(":").to_string();
+    }
+    let lemmy_port: u16 = lemmy_port_env.parse().unwrap_or(8536);
+
+    // Check if Flair is running in a Docker container (true, default) or on bare metal with Cargo (false)
+    let docker_env = env::var("DOCKER").unwrap_or(String::from("true"));
+    let docker: bool = docker_env.parse().unwrap_or(false);
+
+    // Retrieve the path where the sqlite DB should be saved
+    let db_path = env::var("FLAIR_DB_URL").unwrap_or(String::from("./database/flairs.db"));
+
+    return Env {
+        flairs_port,
+        lemmy_port,
+        docker,
+        db_path,
+    };
 }
 
 /// Utility function for mapping any error into a `500 Internal Server Error`
