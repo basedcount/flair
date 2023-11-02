@@ -24,6 +24,7 @@ pub(crate) struct AddUserFlairJson {
     pub user_actor_id: String,
     pub community_actor_id: String,
     pub flair_name: String,
+    pub instance_domain: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, TS)]
@@ -31,6 +32,7 @@ pub(crate) struct AddUserFlairJson {
 pub(crate) struct DeleteUserFlairJson {
     pub user_actor_id: String,
     pub community_actor_id: String,
+    pub instance_domain: String,
 }
 
 #[debug_handler]
@@ -46,6 +48,7 @@ pub(crate) async fn put_user_flair_api(
         &payload.user_actor_id,
         &payload.community_actor_id,
         &state.lemmy_domain,
+        &payload.instance_domain,
     )
     .await
     {
@@ -99,6 +102,7 @@ pub(crate) async fn delete_user_api(
         &payload.user_actor_id,
         &payload.community_actor_id,
         &state.lemmy_domain,
+        &payload.instance_domain,
     )
     .await
     {
@@ -146,6 +150,7 @@ pub(crate) struct AddFlairJson {
     pub path: Option<String>,
     pub community_actor_id: String,
     pub mod_only: bool,
+    pub instance_domain: String,
 }
 
 #[debug_handler]
@@ -160,6 +165,7 @@ pub(crate) async fn put_community_flairs_api(
         &jwt.token(),
         &payload.community_actor_id,
         &state.lemmy_domain,
+        &payload.instance_domain,
     )
     .await
     {
@@ -189,6 +195,7 @@ pub(crate) async fn put_community_flairs_api(
 pub(crate) struct DeleteFlairJson {
     pub name: String,
     pub community_actor_id: String,
+    pub instance_domain: String,
 }
 
 #[debug_handler]
@@ -203,6 +210,7 @@ pub(crate) async fn delete_community_flairs_api(
         &jwt.token(),
         &payload.community_actor_id,
         &state.lemmy_domain,
+        &payload.instance_domain,
     )
     .await
     {

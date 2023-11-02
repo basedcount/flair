@@ -15,8 +15,13 @@ let tot = 0;
     const community_actor_id = 'https://localhost/c/play';
     const user_actor_id_1 = 'https://localhost/u/Nerd02';   //This user is a mod
     const user_actor_id_2 = 'https://localhost/u/Coda';     //This user isn't a mod
+    const user_actor_id_federated = 'https://lemmy.basedcount.com/u/Nerd02';     //This user isn't a mod
+    const local_instance = 'example.com';     //The instance running on this server
+    const federated_instance = 'lemmy.basedcount.com';     //The instance running on some other server
+
     const jwt1 = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOjIsImlzcyI6ImxvY2FsaG9zdCIsImlhdCI6MTY5NDk2NjE5OH0.ttmvkJSBnLI84ZUTusYKJCyRiU6iDXCQx2f45n2HmOE';    //JWT of user 1
     const jwt2 = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOjQsImlzcyI6ImxvY2FsaG9zdCIsImlhdCI6MTY5NDg4Mzc4NH0.armD8BmUPDd6Xw18c9mCAQXJxcPIdpTdR6qfT6sZjN0';    //JWT of user 2
+    const jwt_federated = 'TODO_MOVE_INTO_ENV';    //JWT of federated user - WARNING: this actually controls someone's account
 
     console.log('Welcome to the "flair" testing script. The script assumes the database to be empty before execution.\nIf the first test fails you might have to start the dev server with "cargo run -- serve".\nIf the 2nd or 3rd tests fail you might have to delete your "flairs.db" file.\n');
 
@@ -26,37 +31,40 @@ let tot = 0;
     test('user doesn\'t have a flair on startup', await getUserFlair({ community_actor_id, user_actor_id: user_actor_id_1 }) === null);
 
     console.log('\n===COMMUNITY===');
-    test('add user flair', await addFlair({ community_actor_id, display_name: 'TEMP', mod_only: false, name: 'auth', path: '' }, jwt1));
+    test('add user flair', await addFlair({ community_actor_id, display_name: 'TEMP', mod_only: false, name: 'auth', path: '', instance_domain: local_instance }, jwt1));
     test('flair got added', (await getFlairs({ community_actor_id, mod_only: false })).length === 1);
-    test('update existing user flair', await addFlair({ community_actor_id, display_name: 'AuthCenter', mod_only: false, name: 'auth', path: '' }, jwt1));
+    test('update existing user flair', await addFlair({ community_actor_id, display_name: 'AuthCenter', mod_only: false, name: 'auth', path: '', instance_domain: local_instance }, jwt1));
     test('existing flair got updated', (await getFlairs({ community_actor_id, mod_only: false }))[0].display_name === 'AuthCenter');
-    test('add mod only user flair', await addFlair({ community_actor_id, display_name: 'Based', mod_only: true, name: 'based', path: '' }, jwt1));
+    test('add mod only user flair', await addFlair({ community_actor_id, display_name: 'Based', mod_only: true, name: 'based', path: '', instance_domain: local_instance }, jwt1));
     test('mod flair got added', (await getFlairs({ community_actor_id, mod_only: true })).length === 2);
     test('community has flairs enabled', (await listCommunitiesWithFlairs()).length > 0);
 
     console.log('\n===USER===');
-    test('assign flair to user', await assignUserFlair({ community_actor_id, user_actor_id: user_actor_id_1, flair_name: 'auth' }, jwt1));
+    test('assign flair to user', await assignUserFlair({ community_actor_id, user_actor_id: user_actor_id_1, flair_name: 'auth', instance_domain: local_instance }, jwt1));
     test('flair got assigned', (await getUserFlair({ community_actor_id, user_actor_id: user_actor_id_1 }))?.name === 'auth' ?? false);
-    test('remove flair from user', await deleteUserFlair({ community_actor_id, user_actor_id: user_actor_id_1 }, jwt1));
+    test('remove flair from user', await deleteUserFlair({ community_actor_id, user_actor_id: user_actor_id_1, instance_domain: local_instance }, jwt1));
     test('user is now unflaired', await getUserFlair({ community_actor_id, user_actor_id: user_actor_id_1 }) === null);
-    test('reassign flair to user', await assignUserFlair({ community_actor_id, user_actor_id: user_actor_id_1, flair_name: 'auth' }, jwt1));
-    test('change flair', await assignUserFlair({ community_actor_id, user_actor_id: user_actor_id_1, flair_name: 'based' }, jwt1));
+    test('reassign flair to user', await assignUserFlair({ community_actor_id, user_actor_id: user_actor_id_1, flair_name: 'auth', instance_domain: local_instance }, jwt1));
+    test('change flair', await assignUserFlair({ community_actor_id, user_actor_id: user_actor_id_1, flair_name: 'based', instance_domain: local_instance }, jwt1));
     test('flair got changed', (await getUserFlair({ community_actor_id, user_actor_id: user_actor_id_1 }))?.name === 'based' ?? false);
-    test('delete flair while it\'s assigned to user', await deleteFlair({ community_actor_id, name: 'based' }, jwt1));
+    test('delete flair while it\'s assigned to user', await deleteFlair({ community_actor_id, name: 'based', instance_domain: local_instance }, jwt1));
     test('flair got removed', (await getFlairs({ community_actor_id, mod_only: true })).length === 1);
     test('user is now unflaired', await getUserFlair({ community_actor_id, user_actor_id: user_actor_id_1 }) === null);
-    test('mod can change other people\'s flairs', await assignUserFlair({ community_actor_id, user_actor_id: user_actor_id_2, flair_name: 'auth' }, jwt1));
-    test('mod can remove other people\'s flairs', await deleteUserFlair({ community_actor_id, user_actor_id: user_actor_id_2 }, jwt1));
-    
+    test('mod can change other people\'s flairs', await assignUserFlair({ community_actor_id, user_actor_id: user_actor_id_2, flair_name: 'auth', instance_domain: local_instance }, jwt1));
+    test('mod can remove other people\'s flairs', await deleteUserFlair({ community_actor_id, user_actor_id: user_actor_id_2, instance_domain: local_instance }, jwt1));
+
     console.log('\n===SECURITY===');
-    test('non mod can\'t add new flairs', !await addFlair({ community_actor_id, display_name: 'TEMP', mod_only: false, name: 'temp', path: '' }, jwt2));
-    test('non mod can\'t delete existing flairs', !await deleteFlair({ community_actor_id, name: 'auth' }, jwt2));
-    test('non mod can\'t change other people\'s flairs', !await assignUserFlair({ community_actor_id, user_actor_id: user_actor_id_1, flair_name: 'auth' }, jwt2));
-    test('non mod can\'t remove other people\'s flairs', !await deleteUserFlair({ community_actor_id, user_actor_id: user_actor_id_1 }, jwt2));
+    test('non mod can\'t add new flairs', !await addFlair({ community_actor_id, display_name: 'TEMP', mod_only: false, name: 'temp', path: '', instance_domain: local_instance }, jwt2));
+    test('non mod can\'t delete existing flairs', !await deleteFlair({ community_actor_id, name: 'auth', instance_domain: local_instance }, jwt2));
+    test('non mod can\'t change other people\'s flairs', !await assignUserFlair({ community_actor_id, user_actor_id: user_actor_id_1, flair_name: 'auth', instance_domain: local_instance }, jwt2));
+    test('non mod can\'t remove other people\'s flairs', !await deleteUserFlair({ community_actor_id, user_actor_id: user_actor_id_1, instance_domain: local_instance }, jwt2));
 
-    
+    console.log('\n===FEDERATION===');
+    test('assign flair to user from a federated instance', await assignUserFlair({ community_actor_id, user_actor_id: user_actor_id_federated, flair_name: 'auth', instance_domain: federated_instance }, jwt_federated));
+    test('flair got assigned', (await getUserFlair({ community_actor_id, user_actor_id: user_actor_id_federated }))?.name === 'auth' ?? false);
 
-    await deleteFlair({ community_actor_id, name: 'auth' }, jwt1);    //Cleanup
+
+    await deleteFlair({ community_actor_id, name: 'auth', instance_domain: federated_instance }, jwt_federated);    //Cleanup
 
     console.log(`\nTests over:\n\t✅ - Passed ${success}/${tot} \n\t❌ - Failed ${failure}/${tot}`);
 })();
