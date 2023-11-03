@@ -1,6 +1,7 @@
 build.sh
 flairs
 .env
+.env.local
 *.db
 
 

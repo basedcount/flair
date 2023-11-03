@@ -94,13 +94,15 @@ pub async fn verify_mod(
 }
 
 fn get_url(port: &u16, jwt: &str, local_domain: &str, user_domain: &str, docker: &bool) -> String {
-    let url = if !local_domain.eq(user_domain) {
-        format!("https://{}/api/v3/site?auth={}", user_domain, jwt)
-    } else if *docker {
-        format!("http://lemmy:{}/api/v3/site?auth={}", port, jwt)
+    let url = if local_domain.eq(user_domain) {
+        if *docker {
+            format!("http://lemmy:{}/api/v3/site?auth={}", port, jwt)
+        } else {
+            format!("http://127.0.0.1:{}/api/v3/site?auth={}", port, jwt)
+        }
     } else {
-        format!("http://127.0.0.1:{}/api/v3/site?auth={}", port, jwt)
+        format!("https://{}/api/v3/site?auth={}", user_domain, jwt)
     };
 
-    return url;
+    url
 }

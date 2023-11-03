@@ -21,7 +21,8 @@ let tot = 0;
 
     const jwt1 = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOjIsImlzcyI6ImxvY2FsaG9zdCIsImlhdCI6MTY5NDk2NjE5OH0.ttmvkJSBnLI84ZUTusYKJCyRiU6iDXCQx2f45n2HmOE';    //JWT of user 1
     const jwt2 = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOjQsImlzcyI6ImxvY2FsaG9zdCIsImlhdCI6MTY5NDg4Mzc4NH0.armD8BmUPDd6Xw18c9mCAQXJxcPIdpTdR6qfT6sZjN0';    //JWT of user 2
-    const jwt_federated = 'TODO_MOVE_INTO_ENV';    //JWT of federated user - WARNING: this actually controls someone's account
+    // @ts-ignore
+    const jwt_federated = process.env.FEDERATED_JWT;    //JWT of federated user - WARNING: this actually controls someone's account
 
     console.log('Welcome to the "flair" testing script. The script assumes the database to be empty before execution.\nIf the first test fails you might have to start the dev server with "cargo run -- serve".\nIf the 2nd or 3rd tests fail you might have to delete your "flairs.db" file.\n');
 
@@ -63,8 +64,8 @@ let tot = 0;
     test('assign flair to user from a federated instance', await assignUserFlair({ community_actor_id, user_actor_id: user_actor_id_federated, flair_name: 'auth', instance_domain: federated_instance }, jwt_federated));
     test('flair got assigned', (await getUserFlair({ community_actor_id, user_actor_id: user_actor_id_federated }))?.name === 'auth' ?? false);
 
-
-    await deleteFlair({ community_actor_id, name: 'auth', instance_domain: federated_instance }, jwt_federated);    //Cleanup
+    
+    await deleteFlair({ community_actor_id, name: 'auth', instance_domain: local_instance }, jwt1);    //Cleanup
 
     console.log(`\nTests over:\n\t✅ - Passed ${success}/${tot} \n\t❌ - Failed ${failure}/${tot}`);
 })();
